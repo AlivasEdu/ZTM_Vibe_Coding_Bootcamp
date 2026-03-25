@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classic Pong</title>
+    <style>
+        /* CSS: Centers the game and makes it look like an arcade screen */
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        canvas {
+            border: 2px solid #fff;
+            background-color: #000;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            cursor: none; /* Hides the mouse pointer over the canvas */
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="pongCanvas" width="800" height="400"></canvas>
+
+    <script>
+        // JS: The Game Logic
+        const canvas = document.getElementById("pongCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // --- Game Objects ---
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 10,
+            speed: 5,
+            velocityX: 5,
+            velocityY: 5,
+            color: "#FFF"
+        };
+
+        const user = {
+            x: 0, // Left side
+            y: (canvas.height - 100) / 2,
+            width: 10,
+            height: 100,
+            score: 0,
+            color: "#FFF"
+        };
+
+        const computer = {
+            x: canvas.width - 10, // Right side
+            y: (canvas.height - 100) / 2,
+            width: 10,
+            height: 100,
+            score: 0,
+            color: "#FFF"
+        };
+
+        // --- Helper Functions to Draw Shapes ---
+        function drawRect(x, y, w, h, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, w, h);
+        }
+
+        function drawArc(x, y, r, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2, false);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawText(text, x, y) {
+            ctx.fillStyle = "#FFF";
+            ctx.font = "45px 'Courier New'";
+            ctx.fillText(text, x, y);
+        }
+
+        function drawNet() {
+            for (let i = 0; i <= canvas.height; i += 15) {
+                drawRect(canvas.width / 2 - 1, i, 2, 10, "#FFF");
+            }
+        }
+
+        // --- Controls ---
+        // Move the user paddle based on mouse vertical position
+        canvas.addEventListener("mousemove", (evt) => {
+            let rect = canvas.getBoundingClientRect();
+            // Center the paddle on the mouse cursor
+            user.y = evt.clientY - rect.top - user.height / 2; 
+        });
+
+        // --- Game Mechanics ---
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.speed = 5;
+            // Reverse direction when serving
+            ball.velocityX = -ball.velocityX; 
+        }
+
+        function collision(b, p) {
+            // Find edges of ball and paddle
+            p.top = p.y;
+            p.bottom = p.y + p.height;
+            p.left = p.x;
+            p.right = p.x + p.width;
+
+            b.top = b.y - b.radius;
+            b.bottom = b.y + b.radius;
+            b.left = b.x - b.radius;
+            b.right = b.x + b.radius;
+
+            // Check if they intersect
+            return p.left < b.right && p.top < b.bottom && p.right > b.left && p.bottom > b.top;
+        }
+
+        function update() {
+            // 1. Move the ball
+            ball.x += ball.velocityX;
+            ball.y += ball.velocityY;
+
+            // 2. Simple Computer AI (chases the ball with a slight delay)
+            let computerLevel = 0.1;
+            computer.y += (ball.y - (computer.y + computer.height / 2)) * computerLevel;
+
+            // 3. Wall Collision (Top and Bottom)
+            if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+                ball.velocityY = -ball.velocityY;
+            }
+
+            // 4. Determine which paddle the ball is interacting with
+            let player = (ball.x + ball.radius < canvas.width / 2) ? user : computer;
+
+            // 5. Paddle Collision
+            if (collision(ball, player)) {
+                // Calculate where the ball hit the paddle
+                let collidePoint = (ball.y - (player.y + player.height / 2));
+                // Normalize the value between -1 and 1
+                collidePoint = collidePoint / (player.height / 2);
+
+                // Calculate angle in radians (max 45 degrees)
+                let angleRad = (Math.PI / 4) * collidePoint;
+
+                // X direction depends on which paddle was hit
+                let direction = (ball.x + ball.radius < canvas.width / 2) ? 1 : -1;
+
+                // Change velocity
+                ball.velocityX = direction * ball.speed * Math.cos(angleRad);
+                ball.velocityY = ball.speed * Math.sin(angleRad);
+
+                // Speed up the ball slightly after every hit
+                ball.speed += 0.5;
+            }
+
+            // 6. Score Updates
+            if (ball.x - ball.radius < 0) {
+                computer.score++; // Computer wins round
+                resetBall();
+            } else if (ball.x + ball.radius > canvas.width) {
+                user.score++; // User wins round
+                resetBall();
+            }
+        }
+
+        function render() {
+            // Clear the canvas
+            drawRect(0, 0, canvas.width, canvas.height, "#000");
+
+            // Draw the net and scores
+            drawNet();
+            drawText(user.score, canvas.width / 4, canvas.height / 5);
+            drawText(computer.score, 3 * canvas.width / 4, canvas.height / 5);
+
+            // Draw paddles and ball
+            drawRect(user.x, user.y, user.width, user.height, user.color);
+            drawRect(computer.x, computer.y, computer.width, computer.height, computer.color);
+            drawArc(ball.x, ball.y, ball.radius, ball.color);
+        }
+
+        // --- The Game Loop ---
+        function gameLoop() {
+            update();  // Calculate math/physics
+            render();  // Draw to screen
+            requestAnimationFrame(gameLoop); // Call next frame
+        }
+
+        // Start the game
+        gameLoop();
+    </script>
+</body>
+</html>
