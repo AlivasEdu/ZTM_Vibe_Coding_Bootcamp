@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PONG — VS CPU</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020408;
+    --court: #030b14;
+    --cyan: #00f5ff;
+    --magenta: #ff00aa;
+    --yellow: #ffe700;
+    --green: #00ff88;
+    --red: #ff3c3c;
+    --glow-cyan: 0 0 8px #00f5ff, 0 0 20px #00f5ff55;
+    --glow-mag: 0 0 8px #ff00aa, 0 0 20px #ff00aa55;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+    font-family: 'Orbitron', monospace;
+    color: #e0f7ff;
+    user-select: none;
+  }
+
+  /* Scanlines */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* Vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.8) 100%);
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  #header {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    margin-bottom: 12px;
+    z-index: 10;
+  }
+
+  .score-block { text-align: center; }
+
+  .score-label {
+    font-size: 9px;
+    letter-spacing: 4px;
+    opacity: 0.4;
+    margin-bottom: 4px;
+  }
+
+  .score {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    line-height: 1;
+    width: 80px;
+    text-align: center;
+  }
+
+  #score-left  { color: var(--cyan);    text-shadow: var(--glow-cyan); }
+  #score-right { color: var(--magenta); text-shadow: var(--glow-mag);  }
+
+  #center-info { text-align: center; }
+
+  #game-title {
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 10px;
+    color: rgba(255,255,255,0.25);
+  }
+
+  #diff-badge {
+    margin-top: 6px;
+    font-size: 9px;
+    letter-spacing: 4px;
+    padding: 3px 10px;
+    border-radius: 2px;
+    display: inline-block;
+    transition: all 0.3s;
+  }
+
+  #canvas-wrap { position: relative; z-index: 10; }
+
+  canvas {
+    display: block;
+    border: 1px solid rgba(0,245,255,0.12);
+    box-shadow: 0 0 40px rgba(0,245,255,0.06), 0 0 80px rgba(0,0,0,0.8) inset;
+    background: var(--court);
+  }
+
+  /* ── OVERLAY ── */
+  #overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2,4,8,0.92);
+    z-index: 20;
+    gap: 18px;
+  }
+
+  #overlay h1 {
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: 14px;
+    background: linear-gradient(135deg, var(--cyan), var(--magenta));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 10px rgba(0,245,255,0.5));
+    animation: flicker 5s infinite;
+  }
+
+  #overlay .tagline {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.35);
+  }
+
+  #winner-msg {
+    font-size: 13px;
+    letter-spacing: 6px;
+    font-weight: 700;
+    display: none;
+  }
+
+  /* Difficulty selector */
+  #diff-section { text-align: center; }
+
+  #diff-section label {
+    font-size: 9px;
+    letter-spacing: 5px;
+    color: rgba(255,255,255,0.3);
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  #diff-buttons {
+    display: flex;
+    gap: 10px;
+  }
+
+  .diff-btn {
+    padding: 10px 18px;
+    background: transparent;
+    border: 1px solid;
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+
+  .diff-btn[data-d="easy"]   { border-color: var(--green);   color: var(--green);   }
+  .diff-btn[data-d="medium"] { border-color: var(--yellow);  color: var(--yellow);  }
+  .diff-btn[data-d="hard"]   { border-color: var(--red);     color: var(--red);     }
+  .diff-btn[data-d="insane"] { border-color: var(--magenta); color: var(--magenta); }
+
+  .diff-btn.active,
+  .diff-btn:hover { filter: brightness(1.4); }
+  .diff-btn[data-d="easy"].active   { background: rgba(0,255,136,0.12);  box-shadow: 0 0 14px rgba(0,255,136,0.3);  }
+  .diff-btn[data-d="medium"].active { background: rgba(255,231,0,0.1);   box-shadow: 0 0 14px rgba(255,231,0,0.3);  }
+  .diff-btn[data-d="hard"].active   { background: rgba(255,60,60,0.12);  box-shadow: 0 0 14px rgba(255,60,60,0.3);  }
+  .diff-btn[data-d="insane"].active { background: rgba(255,0,170,0.12);  box-shadow: 0 0 14px rgba(255,0,170,0.3);  }
+
+  #start-btn {
+    padding: 13px 44px;
+    background: transparent;
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    cursor: pointer;
+    box-shadow: var(--glow-cyan), inset 0 0 20px rgba(0,245,255,0.04);
+    transition: all 0.2s;
+  }
+  #start-btn:hover {
+    background: rgba(0,245,255,0.08);
+    box-shadow: 0 0 20px #00f5ff, 0 0 50px #00f5ff44;
+  }
+
+  /* Footer hints */
+  #footer {
+    margin-top: 12px;
+    display: flex;
+    gap: 32px;
+    z-index: 10;
+  }
+  .hint {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.2);
+    text-align: center;
+  }
+  .hint kbd {
+    display: inline-block;
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: rgba(255,255,255,0.45);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+  }
+
+  /* AI thinking indicator */
+  #ai-bar {
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, transparent, var(--magenta), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  @keyframes flicker {
+    0%,94%,100% { opacity:1; }
+    95% { opacity:.8; }
+    97% { opacity:1; }
+    98% { opacity:.85; }
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:.6; }
+    50% { opacity:1; }
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="score-block">
+    <div class="score-label">YOU</div>
+    <div class="score" id="score-left">0</div>
+  </div>
+  <div id="center-info">
+    <div id="game-title">PONG · VS CPU</div>
+    <div id="diff-badge">—</div>
+  </div>
+  <div class="score-block">
+    <div class="score-label">CPU</div>
+    <div class="score" id="score-right">0</div>
+  </div>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="c" width="700" height="460"></canvas>
+  <div id="ai-bar"></div>
+
+  <div id="overlay">
+    <h1>PONG</h1>
+    <div class="tagline">SINGLE PLAYER · VS CPU</div>
+
+    <div id="winner-msg"></div>
+
+    <div id="diff-section">
+      <label>SELECT DIFFICULTY</label>
+      <div id="diff-buttons">
+        <button class="diff-btn" data-d="easy">EASY</button>
+        <button class="diff-btn active" data-d="medium">MEDIUM</button>
+        <button class="diff-btn" data-d="hard">HARD</button>
+        <button class="diff-btn" data-d="insane">INSANE</button>
+      </div>
+    </div>
+
+    <button id="start-btn">START GAME</button>
+  </div>
+</div>
+
+<div id="footer">
+  <div class="hint"><kbd>W</kbd> <kbd>S</kbd> &nbsp;or&nbsp; <kbd>↑</kbd> <kbd>↓</kbd> to move</div>
+  <div class="hint">First to 7 wins</div>
+  <div class="hint"><kbd>P</kbd> pause &nbsp;·&nbsp; <kbd>R</kbd> restart</div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const overlay   = document.getElementById('overlay');
+const startBtn  = document.getElementById('start-btn');
+const winnerMsg = document.getElementById('winner-msg');
+const scoreL    = document.getElementById('score-left');
+const scoreR    = document.getElementById('score-right');
+const diffBadge = document.getElementById('diff-badge');
+const aiBar     = document.getElementById('ai-bar');
+
+const W = canvas.width, H = canvas.height;
+const WIN_SCORE  = 7;
+const PW = 10, PH = 80, BR = 7, MARGIN = 20;
+const CYAN = '#00f5ff', MAG = '#ff00aa', WHITE = '#e0f7ff';
+
+// ── DIFFICULTY SETTINGS ──────────────────────────────────────────
+const DIFFICULTIES = {
+  easy: {
+    label: 'EASY', color: '#00ff88',
+    aiSpeed:       3.5,   // max px/frame AI moves
+    reactionDelay: 18,    // frames before AI reacts to direction change
+    errorFactor:   0.55,  // how far from perfect the AI aims (0=perfect,1=random)
+    predictionErr: 90,    // pixel error in ball trajectory prediction
+    missChance:    0.18,  // probability AI intentionally whiffs
+    ballSpeed:     5.0,
+  },
+  medium: {
+    label: 'MEDIUM', color: '#ffe700',
+    aiSpeed:       5.2,
+    reactionDelay: 10,
+    errorFactor:   0.30,
+    predictionErr: 45,
+    missChance:    0.06,
+    ballSpeed:     5.8,
+  },
+  hard: {
+    label: 'HARD', color: '#ff3c3c',
+    aiSpeed:       7.5,
+    reactionDelay: 4,
+    errorFactor:   0.12,
+    predictionErr: 18,
+    missChance:    0.02,
+    ballSpeed:     6.8,
+  },
+  insane: {
+    label: 'INSANE', color: '#ff00aa',
+    aiSpeed:       12,
+    reactionDelay: 0,
+    errorFactor:   0.0,
+    predictionErr: 0,
+    missChance:    0.0,
+    ballSpeed:     7.8,
+  },
+};
+
+let currentDiff = 'medium';
+let state, keys = {}, animId, trails = [];
+let paused = false;
+let aiTarget = H / 2; // where AI paddle center is heading
+let aiReactionTimer = 0;
+let aiIntentionalMiss = false;
+
+// ── Difficulty button wiring ──────────────────────────────────────
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDiff = btn.dataset.d;
+  });
+});
+
+// ── Badge helper ─────────────────────────────────────────────────
+function updateBadge() {
+  const d = DIFFICULTIES[currentDiff];
+  diffBadge.textContent = d.label;
+  diffBadge.style.color = d.color;
+  diffBadge.style.border = `1px solid ${d.color}44`;
+  diffBadge.style.background = d.color + '18';
+  diffBadge.style.textShadow = `0 0 8px ${d.color}`;
+}
+
+// ── Ball reset ────────────────────────────────────────────────────
+function resetBall(dir = 1) {
+  const d = DIFFICULTIES[currentDiff];
+  const angle = (Math.random() * 0.6 - 0.3);
+  return {
+    x: W / 2, y: H / 2,
+    vx: Math.cos(angle) * d.ballSpeed * dir,
+    vy: Math.sin(angle) * d.ballSpeed,
+  };
+}
+
+// ── State init ────────────────────────────────────────────────────
+function initState() {
+  trails = [];
+  aiTarget = H / 2;
+  aiReactionTimer = 0;
+  aiIntentionalMiss = false;
+  return {
+    player: { y: H / 2 - PH / 2, score: 0 },
+    cpu:    { y: H / 2 - PH / 2, score: 0 },
+    ball:   resetBall(Math.random() > 0.5 ? 1 : -1),
+    flash:  0,
+    hitCount: 0, // for speed progression
+  };
+}
+
+// ── Predict where ball will cross CPU's x ─────────────────────────
+function predictBallY(ball, cfg) {
+  let x = ball.x, y = ball.y, vx = ball.vx, vy = ball.vy;
+  const targetX = W - MARGIN - PW;
+  let steps = 0;
+  while (x < targetX && steps < 600) {
+    x += vx; y += vy; steps++;
+    if (y - BR <= 0)  { y = BR;     vy *= -1; }
+    if (y + BR >= H)  { y = H - BR; vy *= -1; }
+  }
+  // Add prediction error
+  const err = (Math.random() * 2 - 1) * cfg.predictionErr;
+  return Math.max(0, Math.min(H, y + err));
+}
+
+// ── AI update ────────────────────────────────────────────────────
+function updateAI() {
+  const cfg = DIFFICULTIES[currentDiff];
+  const s   = state;
+  const b   = s.ball;
+
+  // Only track ball when it's coming toward AI
+  if (b.vx > 0) {
+    aiReactionTimer++;
+    if (aiReactionTimer >= cfg.reactionDelay) {
+      aiReactionTimer = 0;
+
+      // Decide intentional miss?
+      if (Math.random() < cfg.missChance) {
+        aiIntentionalMiss = true;
+        aiTarget = Math.random() > 0.5 ? 20 : H - 20; // go to wrong corner
+      } else {
+        aiIntentionalMiss = false;
+        const predictedY = predictBallY(b, cfg);
+        // Error factor: blend predicted vs random
+        const randY = Math.random() * H;
+        aiTarget = predictedY * (1 - cfg.errorFactor) + randY * cfg.errorFactor;
+        // Aim for center of paddle to land on predicted point
+        aiTarget -= PH / 2;
+      }
+    }
+  } else {
+    // Ball moving away — slowly return to center
+    if (!aiIntentionalMiss) {
+      aiTarget = H / 2 - PH / 2 + (Math.random() - 0.5) * 40;
+    }
+  }
+
+  // Move toward target
+  const cpuCenter = s.cpu.y + PH / 2;
+  const targetCenter = aiTarget + PH / 2;
+  const diff = targetCenter - cpuCenter;
+  const move = Math.min(Math.abs(diff), cfg.aiSpeed) * Math.sign(diff);
+  s.cpu.y = Math.max(0, Math.min(H - PH, s.cpu.y + move));
+}
+
+// ── Draw helpers ─────────────────────────────────────────────────
+function glowRect(x, y, w, h, color, blur = 16) {
+  ctx.save();
+  ctx.shadowBlur = blur;
+  ctx.shadowColor = color;
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+  ctx.restore();
+}
+
+function drawNet() {
+  const segH = 18, gap = 10, x = W / 2 - 1;
+  ctx.save();
+  ctx.shadowBlur = 6;
+  ctx.shadowColor = 'rgba(255,255,255,0.12)';
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';
+  for (let y = 0; y < H; y += segH + gap) ctx.fillRect(x, y, 2, segH);
+  ctx.restore();
+}
+
+function drawBall(b) {
+  const col = b.vx > 0 ? MAG : CYAN;
+  trails.forEach((t, i) => {
+    const a = (i / trails.length) * 0.3;
+    const r = BR * (i / trails.length) * 0.8;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = col + Math.floor(a * 255).toString(16).padStart(2,'0');
+    ctx.fill();
+  });
+  ctx.save();
+  ctx.shadowBlur = 24;
+  ctx.shadowColor = col;
+  ctx.fillStyle = WHITE;
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, BR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawPauseText() {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,245,255,0.7)';
+  ctx.font = '700 14px Orbitron';
+  ctx.letterSpacing = '8px';
+  ctx.textAlign = 'center';
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = CYAN;
+  ctx.fillText('PAUSED', W / 2, H / 2);
+  ctx.restore();
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid bg
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,245,255,0.022)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  ctx.restore();
+
+  // Flash
+  if (state.flash > 0) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(state.flash / 12, 0.22);
+    ctx.fillStyle = WHITE;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+    state.flash--;
+  }
+
+  drawNet();
+
+  // Player paddle (cyan / left)
+  glowRect(MARGIN, state.player.y, PW, PH, CYAN, 18);
+
+  // CPU paddle (magenta / right)
+  glowRect(W - MARGIN - PW, state.cpu.y, PW, PH, MAG, 18);
+
+  drawBall(state.ball);
+
+  if (paused) drawPauseText();
+}
+
+// ── Game tick ─────────────────────────────────────────────────────
+function tick() {
+  if (paused) { draw(); animId = requestAnimationFrame(tick); return; }
+  if (!state) return;
+
+  const s = state;
+  const b = s.ball;
+
+  // Player movement
+  const PSPD = 7;
+  if (keys['w'] || keys['W'] || keys['ArrowUp'])   s.player.y = Math.max(0, s.player.y - PSPD);
+  if (keys['s'] || keys['S'] || keys['ArrowDown'])  s.player.y = Math.min(H - PH, s.player.y + PSPD);
+
+  // AI
+  updateAI();
+
+  // Trail
+  trails.push({ x: b.x, y: b.y });
+  if (trails.length > 14) trails.shift();
+
+  // Move ball
+  b.x += b.vx;
+  b.y += b.vy;
+
+  // Wall bounce
+  if (b.y - BR <= 0)  { b.y = BR;     b.vy *= -1; }
+  if (b.y + BR >= H)  { b.y = H - BR; b.vy *= -1; }
+
+  function hitPaddle(px, py) {
+    return b.x + BR > px && b.x - BR < px + PW &&
+           b.y + BR > py && b.y - BR < py + PH;
+  }
+
+  const MAX_SPEED = 16;
+
+  // Player paddle collision
+  if (b.vx < 0 && hitPaddle(MARGIN, s.player.y)) {
+    b.x = MARGIN + PW + BR;
+    const rel = (b.y - (s.player.y + PH / 2)) / (PH / 2);
+    const angle = rel * 1.15;
+    const spd = Math.min(Math.hypot(b.vx, b.vy) * 1.05, MAX_SPEED);
+    b.vx =  Math.cos(angle) * spd;
+    b.vy =  Math.sin(angle) * spd;
+    s.flash = 8;
+    s.hitCount++;
+    aiIntentionalMiss = false; // re-evaluate
+  }
+
+  // CPU paddle collision
+  if (b.vx > 0 && hitPaddle(W - MARGIN - PW, s.cpu.y)) {
+    b.x = W - MARGIN - PW - BR;
+    const rel = (b.y - (s.cpu.y + PH / 2)) / (PH / 2);
+    const angle = Math.PI - rel * 1.15;
+    const spd = Math.min(Math.hypot(b.vx, b.vy) * 1.05, MAX_SPEED);
+    b.vx = Math.cos(angle) * spd;
+    b.vy = Math.sin(angle) * spd;
+    s.flash = 8;
+    s.hitCount++;
+  }
+
+  // Score
+  if (b.x < 0) {
+    s.cpu.score++;
+    updateScores();
+    trails = [];
+    aiIntentionalMiss = false;
+    if (s.cpu.score >= WIN_SCORE) { endGame('cpu'); return; }
+    Object.assign(s.ball, resetBall(1));
+  }
+  if (b.x > W) {
+    s.player.score++;
+    updateScores();
+    trails = [];
+    aiIntentionalMiss = false;
+    if (s.player.score >= WIN_SCORE) { endGame('player'); return; }
+    Object.assign(s.ball, resetBall(-1));
+  }
+
+  draw();
+  animId = requestAnimationFrame(tick);
+}
+
+// ── Score update ─────────────────────────────────────────────────
+function updateScores() {
+  scoreL.textContent = state.player.score;
+  scoreR.textContent = state.cpu.score;
+}
+
+// ── End game ──────────────────────────────────────────────────────
+function endGame(who) {
+  cancelAnimationFrame(animId);
+  draw();
+  winnerMsg.style.display = 'block';
+  if (who === 'player') {
+    winnerMsg.textContent = 'YOU WIN!';
+    winnerMsg.style.color = CYAN;
+    winnerMsg.style.textShadow = '0 0 10px #00f5ff, 0 0 30px #00f5ff55';
+  } else {
+    winnerMsg.textContent = 'CPU WINS';
+    winnerMsg.style.color = MAG;
+    winnerMsg.style.textShadow = '0 0 10px #ff00aa, 0 0 30px #ff00aa55';
+  }
+  startBtn.textContent = 'PLAY AGAIN';
+  overlay.style.display = 'flex';
+}
+
+// ── Start / restart ───────────────────────────────────────────────
+function startGame() {
+  if (animId) cancelAnimationFrame(animId);
+  paused = false;
+  winnerMsg.style.display = 'none';
+  winnerMsg.textContent = '';
+  startBtn.textContent = 'START GAME';
+  state = initState();
+  updateScores();
+  updateBadge();
+  overlay.style.display = 'none';
+  tick();
+}
+
+// ── Controls ──────────────────────────────────────────────────────
+startBtn.addEventListener('click', startGame);
+
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (['ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
+
+  if ((e.key === 'p' || e.key === 'P') && state && overlay.style.display === 'none') {
+    paused = !paused;
+  }
+  if ((e.key === 'r' || e.key === 'R') && state) {
+    startGame();
+  }
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// ── Initial render ────────────────────────────────────────────────
+state = initState();
+updateBadge();
+draw();
+</script>
+</body>
+</html>
