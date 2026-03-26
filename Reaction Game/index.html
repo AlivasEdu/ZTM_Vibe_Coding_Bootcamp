@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReflexLab — Reaction Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0F172A;
+  --surface:#1E293B;
+  --text:#F1F5F9;
+  --text-2:#94A3B8;
+  --ready:#10B981;
+  --waiting:#F59E0B;
+  --result:#3B82F6;
+  --error:#EF4444;
+  --border:rgba(148,163,184,0.12);
+  --border-strong:rgba(148,163,184,0.22);
+}
+
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace}
+
+#canvas-wrap{position:fixed;inset:0;z-index:0}
+
+/* Scanline texture */
+#app{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column;pointer-events:none}
+#app::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:100;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px)}
+
+/* HEADER */
+header{
+  padding:20px 32px;display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--border);
+  background:rgba(15,23,42,0.65);backdrop-filter:blur(12px);
+  pointer-events:all;
+}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.35rem;letter-spacing:-0.03em;display:flex;align-items:center;gap:10px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--result);box-shadow:0 0 10px var(--result);animation:dot-pulse 2s ease-in-out infinite}
+@keyframes dot-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.8)}}
+.logo span{color:var(--result)}
+.badge{font-size:0.65rem;padding:4px 14px;border:1px solid var(--border-strong);border-radius:100px;color:var(--text-2);letter-spacing:0.1em;text-transform:uppercase}
+
+/* MAIN AREA */
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:20px}
+
+/* GAME PANEL */
+.panel{
+  width:min(480px,92vw);
+  background:rgba(15,23,42,0.72);
+  backdrop-filter:blur(24px);
+  border:1px solid var(--border);
+  border-radius:22px;padding:36px 40px;
+  text-align:center;pointer-events:all;
+  position:relative;overflow:hidden;
+  box-shadow:0 32px 80px rgba(0,0,0,0.5);
+}
+.panel-glow{
+  position:absolute;inset:0;border-radius:22px;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 0%,rgba(59,130,246,0.12) 0%,transparent 65%);
+  transition:background 0.6s ease;
+}
+.panel-glow.state-waiting{background:radial-gradient(ellipse at 50% 0%,rgba(245,158,11,0.12) 0%,transparent 65%)}
+.panel-glow.state-ready{background:radial-gradient(ellipse at 50% 50%,rgba(16,185,129,0.18) 0%,transparent 65%);animation:glow-pulse 0.6s ease-in-out infinite alternate}
+.panel-glow.state-result{background:radial-gradient(ellipse at 50% 0%,rgba(59,130,246,0.15) 0%,transparent 65%)}
+.panel-glow.state-false{background:radial-gradient(ellipse at 50% 0%,rgba(239,68,68,0.12) 0%,transparent 65%)}
+@keyframes glow-pulse{from{opacity:0.8}to{opacity:1.4}}
+
+/* Accent top line */
+.panel::before{
+  content:'';position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,var(--result),transparent);
+  opacity:0.6;transition:background 0.5s ease;
+}
+
+/* STATE ICON */
+.icon{
+  width:64px;height:64px;border-radius:50%;margin:0 auto 22px;
+  display:flex;align-items:center;justify-content:center;font-size:1.6rem;
+  transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  position:relative;z-index:1;
+}
+.icon-idle{background:rgba(59,130,246,0.1);border:1.5px solid rgba(59,130,246,0.35)}
+.icon-waiting{background:rgba(245,158,11,0.1);border:1.5px solid rgba(245,158,11,0.4);animation:icon-wait 1.4s ease-in-out infinite}
+.icon-ready{background:rgba(16,185,129,0.15);border:1.5px solid rgba(16,185,129,0.5);animation:icon-ready 0.55s ease-in-out infinite}
+.icon-result{background:rgba(59,130,246,0.1);border:1.5px solid rgba(59,130,246,0.35)}
+.icon-false{background:rgba(239,68,68,0.1);border:1.5px solid rgba(239,68,68,0.4)}
+@keyframes icon-wait{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.06) rotate(180deg)}}
+@keyframes icon-ready{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(16,185,129,0.5)}50%{transform:scale(1.1);box-shadow:0 0 0 14px rgba(16,185,129,0)}}
+
+/* TYPOGRAPHY */
+.title{font-family:'Syne',sans-serif;font-weight:700;font-size:1.75rem;letter-spacing:-0.025em;margin-bottom:8px;position:relative;z-index:1}
+.subtitle{font-size:0.8rem;color:var(--text-2);margin-bottom:28px;line-height:1.7;position:relative;z-index:1}
+.subtitle strong{color:var(--text);font-weight:600}
+
+/* INSTRUCTION LIST */
+.steps{display:flex;flex-direction:column;gap:8px;margin-bottom:28px;position:relative;z-index:1}
+.step{display:flex;align-items:center;gap:12px;padding:9px 14px;background:rgba(148,163,184,0.04);border:1px solid var(--border);border-radius:10px;text-align:left;font-size:0.75rem;color:var(--text-2)}
+.step-num{width:22px;height:22px;min-width:22px;border-radius:50%;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--result);font-weight:700}
+
+/* TIME DISPLAY */
+.time-big{font-size:4.5rem;font-weight:700;letter-spacing:-0.04em;line-height:1;margin:12px 0 4px;color:var(--result);position:relative;z-index:1;font-variant-numeric:tabular-nums}
+.time-unit{font-size:0.78rem;color:var(--text-2);margin-bottom:20px;letter-spacing:0.08em;text-transform:uppercase;position:relative;z-index:1}
+
+/* RATING CHIP */
+.chip{display:inline-block;padding:5px 16px;border-radius:100px;font-size:0.7rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;margin-bottom:26px;position:relative;z-index:1}
+.chip-elite{background:rgba(16,185,129,0.12);color:var(--ready);border:1px solid rgba(16,185,129,0.3)}
+.chip-great{background:rgba(59,130,246,0.12);color:var(--result);border:1px solid rgba(59,130,246,0.3)}
+.chip-good{background:rgba(245,158,11,0.12);color:var(--waiting);border:1px solid rgba(245,158,11,0.3)}
+.chip-avg{background:rgba(148,163,184,0.08);color:var(--text-2);border:1px solid var(--border)}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:11px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;font-size:0.9rem;letter-spacing:0.01em;transition:transform 0.15s,box-shadow 0.2s,filter 0.2s;position:relative;overflow:hidden}
+.btn::after{content:'';position:absolute;inset:0;background:white;opacity:0;transition:opacity 0.12s}
+.btn:hover::after{opacity:0.07}
+.btn:active{transform:scale(0.96)}
+.btn-blue{background:var(--result);color:#fff;box-shadow:0 4px 20px rgba(59,130,246,0.3)}
+.btn-blue:hover{box-shadow:0 6px 28px rgba(59,130,246,0.45)}
+.btn-green{background:var(--ready);color:#fff;box-shadow:0 4px 20px rgba(16,185,129,0.3)}
+.btn-green:hover{box-shadow:0 6px 28px rgba(16,185,129,0.45)}
+.btn-red{background:rgba(239,68,68,0.12);color:var(--error);border:1px solid rgba(239,68,68,0.28)}
+.btn-ghost{background:rgba(148,163,184,0.08);color:var(--text-2);border:1px solid var(--border)}
+
+/* WAITING INDICATOR */
+.hold-text{font-size:0.72rem;color:var(--text-2);margin-top:12px;letter-spacing:0.05em;position:relative;z-index:1}
+.pulse-bar{width:100%;height:3px;background:rgba(245,158,11,0.12);border-radius:2px;margin:16px 0 8px;overflow:hidden;position:relative;z-index:1}
+.pulse-bar-inner{height:100%;background:linear-gradient(90deg,transparent,var(--waiting),transparent);animation:bar-slide 1.6s ease-in-out infinite;width:40%}
+@keyframes bar-slide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+
+/* SCREENS */
+.screen{display:none}
+.screen.active{display:block}
+
+/* KEYBOARD HINT */
+.kb-hint{margin-top:14px;font-size:0.65rem;color:rgba(148,163,184,0.4);letter-spacing:0.06em;position:relative;z-index:1}
+kbd{display:inline-block;padding:1px 6px;border:1px solid rgba(148,163,184,0.2);border-radius:4px;font-family:inherit;font-size:inherit}
+
+/* FOOTER / STATS */
+footer{
+  padding:14px 32px;
+  background:rgba(15,23,42,0.65);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);pointer-events:all;
+}
+.stats{display:flex;justify-content:center;gap:0;flex-wrap:wrap}
+.stat{text-align:center;padding:0 28px;border-right:1px solid var(--border)}
+.stat:last-child{border-right:none}
+.stat-val{font-size:1.15rem;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.stat-lbl{font-size:0.6rem;color:var(--text-2);letter-spacing:0.1em;text-transform:uppercase;margin-top:1px}
+
+/* CLICK OVERLAY */
+#overlay{position:fixed;inset:0;z-index:50;cursor:crosshair;display:none;-webkit-tap-highlight-color:transparent}
+
+/* TOOLTIP for keyboard */
+.shortcut-bar{display:flex;justify-content:center;gap:20px;margin-top:8px;opacity:0.4}
+.shortcut-item{font-size:0.6rem;display:flex;align-items:center;gap:4px;color:var(--text-2)}
+
+@media(max-width:480px){
+  header{padding:14px 18px}
+  .panel{padding:26px 20px}
+  .time-big{font-size:3.5rem}
+  .stats{gap:0}
+  .stat{padding:0 14px}
+  footer{padding:12px 18px}
+  .stat-val{font-size:1rem}
+}
+</style>
+</head>
+<body>
+
+<div id="canvas-wrap"></div>
+<div id="overlay"></div>
+
+<div id="app">
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      Reflex<span>Lab</span>
+    </div>
+    <div class="badge">Portfolio · Three.js</div>
+  </header>
+
+  <main>
+    <div class="panel" id="panel">
+      <div class="panel-glow" id="pglow"></div>
+
+      <!-- IDLE -->
+      <div class="screen active" id="s-idle">
+        <div class="icon icon-idle">⚡</div>
+        <h1 class="title">Reaction Timer</h1>
+        <p class="subtitle">Measure your reflexes with<br>millisecond precision.</p>
+        <div class="steps">
+          <div class="step"><div class="step-num">1</div>Press Start to begin the test</div>
+          <div class="step"><div class="step-num">2</div>Wait — <strong>do not</strong> click yet</div>
+          <div class="step"><div class="step-num">3</div>Click instantly when the scene turns <strong style="color:var(--ready)">green</strong></div>
+          <div class="step"><div class="step-num">4</div>Early clicks are counted as false starts</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-blue" onclick="startGame()">▶ &nbsp;Start Test</button>
+        </div>
+        <div class="kb-hint">or press <kbd>Space</kbd></div>
+      </div>
+
+      <!-- WAITING -->
+      <div class="screen" id="s-waiting">
+        <div class="icon icon-waiting">◎</div>
+        <h1 class="title">Hold Steady…</h1>
+        <p class="subtitle">Wait for the signal.<br><strong>Do not click yet.</strong></p>
+        <div class="pulse-bar"><div class="pulse-bar-inner"></div></div>
+        <p class="hold-text">Watching for the green signal…</p>
+      </div>
+
+      <!-- READY -->
+      <div class="screen" id="s-ready">
+        <div class="icon icon-ready">✦</div>
+        <h1 class="title" style="color:var(--ready)">CLICK NOW!</h1>
+        <p class="subtitle" style="color:var(--ready);opacity:0.75">React as fast as you can!</p>
+      </div>
+
+      <!-- RESULT -->
+      <div class="screen" id="s-result">
+        <div class="icon icon-result" id="result-icon">◈</div>
+        <h1 class="title">Your Reaction</h1>
+        <div class="time-big" id="result-ms">—</div>
+        <div class="time-unit">milliseconds</div>
+        <div class="chip" id="result-chip"></div>
+        <div class="btn-row">
+          <button class="btn btn-green" onclick="startGame()">▶ Try Again</button>
+          <button class="btn btn-ghost" onclick="resetSession()">↺ Reset</button>
+        </div>
+        <div class="kb-hint"><kbd>Space</kbd> to retry &nbsp;·&nbsp; <kbd>R</kbd> to reset</div>
+      </div>
+
+      <!-- FALSE START -->
+      <div class="screen" id="s-false">
+        <div class="icon icon-false">✕</div>
+        <h1 class="title" style="color:var(--error)">Too Early!</h1>
+        <p class="subtitle">You clicked before the signal.<br>False start — try again.</p>
+        <div class="btn-row">
+          <button class="btn btn-red" onclick="startGame()">▶ Try Again</button>
+          <button class="btn btn-ghost" onclick="resetSession()">↺ Reset</button>
+        </div>
+        <div class="kb-hint"><kbd>Space</kbd> to retry &nbsp;·&nbsp; <kbd>R</kbd> to reset</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="stats">
+      <div class="stat"><div class="stat-val" id="s-attempts">0</div><div class="stat-lbl">Attempts</div></div>
+      <div class="stat"><div class="stat-val" id="s-avg">—</div><div class="stat-lbl">Average</div></div>
+      <div class="stat"><div class="stat-val" id="s-best">—</div><div class="stat-lbl">Best</div></div>
+      <div class="stat"><div class="stat-val" id="s-worst">—</div><div class="stat-lbl">Worst</div></div>
+      <div class="stat"><div class="stat-val" id="s-false-ct">0</div><div class="stat-lbl">False Starts</div></div>
+    </div>
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   THREE.JS SCENE
+   ============================================================ */
+const wrap = document.getElementById('canvas-wrap');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x0F172A, 1);
+wrap.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0F172A, 0.065);
+
+const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 0, 6.5);
+
+/* LIGHTS */
+const ambLight = new THREE.AmbientLight(0x1a2540, 0.8);
+scene.add(ambLight);
+
+const pLight1 = new THREE.PointLight(0x3B82F6, 2.5, 22);
+pLight1.position.set(5, 5, 4);
+scene.add(pLight1);
+
+const pLight2 = new THREE.PointLight(0x10B981, 1.2, 18);
+pLight2.position.set(-4, -3, 3);
+scene.add(pLight2);
+
+const pLight3 = new THREE.PointLight(0xF59E0B, 0, 16);
+pLight3.position.set(0, 5, -3);
+scene.add(pLight3);
+
+const pLight4 = new THREE.PointLight(0xEF4444, 0, 18);
+pLight4.position.set(-5, -5, 4);
+scene.add(pLight4);
+
+/* MAIN ICOSAHEDRON (solid) */
+const icoGeo = new THREE.IcosahedronGeometry(1.45, 1);
+const icoMat = new THREE.MeshPhongMaterial({
+  color: 0x1E293B, emissive: 0x0a1220, shininess: 100,
+  specular: 0x3B82F6, transparent: true, opacity: 0.92,
+});
+const ico = new THREE.Mesh(icoGeo, icoMat);
+scene.add(ico);
+
+/* WIREFRAME OVERLAY */
+const wireGeo = new THREE.IcosahedronGeometry(1.48, 1);
+const wireMat = new THREE.MeshBasicMaterial({
+  color: 0x3B82F6, wireframe: true, transparent: true, opacity: 0.22,
+});
+const wire = new THREE.Mesh(wireGeo, wireMat);
+scene.add(wire);
+
+/* INNER GLOW SPHERE */
+const glowGeo = new THREE.SphereGeometry(1.15, 32, 32);
+const glowMat = new THREE.MeshBasicMaterial({
+  color: 0x3B82F6, transparent: true, opacity: 0.025,
+});
+const glowSphere = new THREE.Mesh(glowGeo, glowMat);
+scene.add(glowSphere);
+
+/* ORBITAL RINGS (3) */
+const ringData = [
+  { r: 2.25, tube: 0.012, color: 0x3B82F6, axis: new THREE.Vector3(1, 0, 0) },
+  { r: 2.75, tube: 0.010, color: 0x10B981, axis: new THREE.Vector3(0.4, 1, 0.2).normalize() },
+  { r: 3.15, tube: 0.008, color: 0xF59E0B, axis: new THREE.Vector3(-0.2, 0.6, 1).normalize() },
+];
+const rings = ringData.map(d => {
+  const geo = new THREE.TorusGeometry(d.r, d.tube, 8, 100);
+  const mat = new THREE.MeshBasicMaterial({ color: d.color, transparent: true, opacity: 0.18 });
+  const mesh = new THREE.Mesh(geo, mat);
+  scene.add(mesh);
+  return { mesh, mat, axis: d.axis };
+});
+
+/* SATELLITE SPHERES (4 small orbs) */
+const satGroup = new THREE.Group();
+scene.add(satGroup);
+const satMeshes = [];
+for (let i = 0; i < 4; i++) {
+  const sGeo = new THREE.SphereGeometry(0.055, 12, 12);
+  const sMat = new THREE.MeshBasicMaterial({ color: 0x3B82F6, transparent: true, opacity: 0.7 });
+  const s = new THREE.Mesh(sGeo, sMat);
+  const angle = (i / 4) * Math.PI * 2;
+  s.position.set(Math.cos(angle) * 2.0, Math.sin(angle) * 0.6, Math.sin(angle) * 1.8);
+  satGroup.add(s);
+  satMeshes.push({ mesh: s, mat: sMat, baseAngle: angle });
+}
+
+/* PARTICLE FIELD */
+const NPART = 2000;
+const pPos = new Float32Array(NPART * 3);
+for (let i = 0; i < NPART; i++) {
+  const phi = Math.acos(2 * Math.random() - 1);
+  const theta = Math.random() * Math.PI * 2;
+  const r = 6 + Math.random() * 12;
+  pPos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+  pPos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+  pPos[i*3+2] = r * Math.cos(phi);
+}
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+const pMat = new THREE.PointsMaterial({ color: 0x3B82F6, size: 0.04, transparent: true, opacity: 0.45, sizeAttenuation: true });
+const particles = new THREE.Points(pGeo, pMat);
+scene.add(particles);
+
+/* ============================================================
+   ANIMATION STATE MACHINE
+   ============================================================ */
+const sceneTargets = {
+  idle:    { icoColor: new THREE.Color(0x1E293B), wireColor: new THREE.Color(0x3B82F6), partColor: new THREE.Color(0x3B82F6), glowColor: new THREE.Color(0x3B82F6), l1i: 2.5, l2i: 1.2, l3i: 0, l4i: 0, rotSpd: 0.003, ringSpd: 0.004, ringOp: 0.18, scale: 1.0,  satOp: 0.7 },
+  waiting: { icoColor: new THREE.Color(0x1e1a0d), wireColor: new THREE.Color(0xF59E0B), partColor: new THREE.Color(0xF59E0B), glowColor: new THREE.Color(0xF59E0B), l1i: 3.5, l2i: 0,   l3i: 2.5,l4i: 0, rotSpd: 0.009, ringSpd: 0.014, ringOp: 0.30, scale: 1.05, satOp: 0.5 },
+  ready:   { icoColor: new THREE.Color(0x0a1f14), wireColor: new THREE.Color(0x10B981), partColor: new THREE.Color(0x10B981), glowColor: new THREE.Color(0x10B981), l1i: 6,   l2i: 4,   l3i: 0,  l4i: 0, rotSpd: 0.028, ringSpd: 0.040, ringOp: 0.60, scale: 1.22, satOp: 1.0 },
+  result:  { icoColor: new THREE.Color(0x0d1929), wireColor: new THREE.Color(0x3B82F6), partColor: new THREE.Color(0x3B82F6), glowColor: new THREE.Color(0x3B82F6), l1i: 3,   l2i: 1.5, l3i: 0,  l4i: 0, rotSpd: 0.005, ringSpd: 0.009, ringOp: 0.28, scale: 0.96, satOp: 0.6 },
+  false:   { icoColor: new THREE.Color(0x1f0d0d), wireColor: new THREE.Color(0xEF4444), partColor: new THREE.Color(0xEF4444), glowColor: new THREE.Color(0xEF4444), l1i: 0,   l2i: 0,   l3i: 0,  l4i: 3.5, rotSpd: 0.002, ringSpd: 0.003, ringOp: 0.10, scale: 0.88, satOp: 0.3 },
+};
+
+let curState = 'idle';
+let rotSpd = 0.003, ringSpd = 0.004, ringOp = 0.18, curScale = 1.0;
+let animTime = 0;
+
+function setSceneState(s) { curState = s; }
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+const L = 0.055; // lerp factor
+
+function animate(t) {
+  requestAnimationFrame(animate);
+  const dt = 0.016;
+  animTime += dt;
+
+  const tgt = sceneTargets[curState];
+
+  rotSpd   += (tgt.rotSpd  - rotSpd)  * 0.07;
+  ringSpd  += (tgt.ringSpd - ringSpd) * 0.07;
+  ringOp   += (tgt.ringOp  - ringOp)  * 0.07;
+  curScale += (tgt.scale   - curScale)* 0.09;
+
+  // Rotate main geometry
+  ico.rotation.x  += rotSpd * 0.65;
+  ico.rotation.y  += rotSpd;
+  wire.rotation.x  = ico.rotation.x;
+  wire.rotation.y  = ico.rotation.y;
+  glowSphere.rotation.y += rotSpd * 0.5;
+
+  ico.scale.setScalar(curScale);
+  wire.scale.setScalar(curScale * 1.015);
+  glowSphere.scale.setScalar(curScale);
+
+  // Color lerps
+  icoMat.color.lerp(tgt.icoColor, L);
+  wireMat.color.lerp(tgt.wireColor, L);
+  pMat.color.lerp(tgt.partColor, L);
+  glowMat.color.lerp(tgt.glowColor, L);
+
+  // Lights
+  pLight1.color.lerp(tgt.wireColor, L * 0.8);
+  pLight2.color.lerp(tgt.wireColor, L * 0.8);
+  pLight1.intensity += (tgt.l1i - pLight1.intensity) * 0.09;
+  pLight2.intensity += (tgt.l2i - pLight2.intensity) * 0.09;
+  pLight3.intensity += (tgt.l3i - pLight3.intensity) * 0.09;
+  pLight4.intensity += (tgt.l4i - pLight4.intensity) * 0.09;
+
+  // Ready pulse effect
+  if (curState === 'ready') {
+    const p = (Math.sin(animTime * 9) + 1) * 0.5;
+    glowMat.opacity = 0.03 + p * 0.12;
+    wireMat.opacity = 0.22 + p * 0.5;
+  } else {
+    glowMat.opacity += (0.025 - glowMat.opacity) * 0.05;
+    wireMat.opacity += (0.22  - wireMat.opacity)  * 0.05;
+  }
+
+  // Rings
+  rings.forEach((r, i) => {
+    r.mesh.rotateOnAxis(r.axis, ringSpd * (1 - i * 0.15));
+    const op = ringOp * (1 - i * 0.18);
+    r.mat.opacity += (op - r.mat.opacity) * 0.06;
+    r.mat.color.lerp(tgt.wireColor, L * 0.7);
+  });
+
+  // Satellites orbit
+  const satRadius = curScale * 1.95;
+  satGroup.rotation.y += ringSpd * 1.8;
+  satGroup.rotation.x += ringSpd * 0.6;
+  satMeshes.forEach((s, i) => {
+    s.mat.color.lerp(tgt.wireColor, L * 0.7);
+    const op = tgt.satOp;
+    s.mat.opacity += (op - s.mat.opacity) * 0.07;
+  });
+
+  // Particles drift
+  particles.rotation.y += rotSpd * 0.18;
+  particles.rotation.x += rotSpd * 0.07;
+
+  // Gentle camera float
+  camera.position.y = Math.sin(animTime * 0.28) * 0.12;
+  camera.position.x = Math.cos(animTime * 0.19) * 0.07;
+  camera.lookAt(0, 0, 0);
+
+  renderer.render(scene, camera);
+}
+animate(0);
+
+/* ============================================================
+   GAME LOGIC
+   ============================================================ */
+const G = { IDLE:'idle', WAITING:'waiting', READY:'ready', RESULT:'result', FALSE:'false' };
+let gameState = G.IDLE;
+let timer = null;
+let stimulusStartTime = 0;
+const session = { attempts: 0, times: [], falseStarts: 0 };
+
+const pglow = document.getElementById('pglow');
+function setPanelGlow(cls) {
+  pglow.className = 'panel-glow ' + (cls ? 'state-'+cls : '');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+}
+
+function updateStats() {
+  document.getElementById('s-attempts').textContent = session.attempts;
+  document.getElementById('s-false-ct').textContent = session.falseStarts;
+  if (!session.times.length) {
+    document.getElementById('s-avg').textContent =
+    document.getElementById('s-best').textContent =
+    document.getElementById('s-worst').textContent = '—';
+    return;
+  }
+  const avg  = Math.round(session.times.reduce((a,b)=>a+b,0) / session.times.length);
+  const best  = Math.min(...session.times);
+  const worst = Math.max(...session.times);
+  document.getElementById('s-avg').textContent  = avg+'ms';
+  document.getElementById('s-best').textContent  = best+'ms';
+  document.getElementById('s-worst').textContent = worst+'ms';
+}
+
+function ratingFor(ms) {
+  if (ms < 175) return { text:'⚡ Elite Reflexes', cls:'chip-elite' };
+  if (ms < 250) return { text:'✦ Excellent',       cls:'chip-great' };
+  if (ms < 350) return { text:'◆ Good',             cls:'chip-good'  };
+  return             { text:'○ Average',            cls:'chip-avg'   };
+}
+
+function startGame() {
+  if (timer) { clearTimeout(timer); timer = null; }
+  gameState = G.WAITING;
+  showScreen('waiting');
+  setSceneState('waiting');
+  setPanelGlow('waiting');
+  document.getElementById('overlay').style.display = 'block';
+
+  const delay = 1000 + Math.random() * 4000;
+  timer = setTimeout(triggerStimulus, delay);
+}
+
+function triggerStimulus() {
+  timer = null;
+  gameState = G.READY;
+  stimulusStartTime = performance.now();
+  showScreen('ready');
+  setSceneState('ready');
+  setPanelGlow('ready');
+}
+
+function handleAction() {
+  if (gameState === G.WAITING) {
+    if (timer) { clearTimeout(timer); timer = null; }
+    gameState = G.FALSE;
+    session.falseStarts++;
+    showScreen('false');
+    setSceneState('false');
+    setPanelGlow('false');
+    document.getElementById('overlay').style.display = 'none';
+    updateStats();
+
+  } else if (gameState === G.READY) {
+    const ms = Math.round(performance.now() - stimulusStartTime);
+    gameState = G.RESULT;
+    session.attempts++;
+    session.times.push(ms);
+
+    const rating = ratingFor(ms);
+    document.getElementById('result-ms').textContent = ms;
+    const chip = document.getElementById('result-chip');
+    chip.textContent = rating.text;
+    chip.className = 'chip ' + rating.cls;
+
+    showScreen('result');
+    setSceneState('result');
+    setPanelGlow('result');
+    document.getElementById('overlay').style.display = 'none';
+    updateStats();
+  }
+}
+
+function resetSession() {
+  if (timer) { clearTimeout(timer); timer = null; }
+  gameState = G.IDLE;
+  session.attempts = 0;
+  session.times.length = 0;
+  session.falseStarts = 0;
+  showScreen('idle');
+  setSceneState('idle');
+  setPanelGlow('');
+  document.getElementById('overlay').style.display = 'none';
+  updateStats();
+}
+
+/* EVENT BINDINGS */
+const ov = document.getElementById('overlay');
+ov.addEventListener('click', handleAction);
+ov.addEventListener('touchend', e => { e.preventDefault(); handleAction(); }, { passive: false });
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    if (gameState === G.WAITING || gameState === G.READY) {
+      handleAction();
+    } else if (gameState !== G.IDLE) {
+      startGame();
+    } else {
+      startGame();
+    }
+  }
+  if (e.code === 'KeyR') resetSession();
+});
+
+/* INIT */
+updateStats();
+</script>
+</body>
+</html>
