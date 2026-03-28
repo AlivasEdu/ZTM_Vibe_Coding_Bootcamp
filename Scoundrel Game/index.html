@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Scoundrel - A solo dungeon-crawl card game">
+    <title>Scoundrel - Solo Card Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Header with title and controls -->
+        <header class="game-header">
+            <h1>Scoundrel</h1>
+            <div class="header-controls">
+                <button id="new-game-btn" class="btn btn-primary" aria-label="Start new game">
+                    New Game
+                </button>
+                <button id="restart-btn" class="btn btn-secondary" aria-label="Restart current game">
+                    Restart
+                </button>
+                <button id="help-btn" class="btn btn-tertiary" aria-label="Show rules and help">
+                    Help
+                </button>
+                <button id="debug-btn" class="btn btn-debug" aria-label="Toggle debug panel" title="Debug">
+                    🐛
+                </button>
+            </div>
+        </header>
+
+        <!-- HUD Section -->
+        <section class="hud" aria-label="Game status">
+            <div class="hud-item health-panel">
+                <span class="hud-label">Health</span>
+                <div class="health-bar-container">
+                    <div class="health-bar" id="health-bar" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="20">
+                        <span id="health-text">20/20</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hud-item weapon-panel">
+                <span class="hud-label">Weapon</span>
+                <div class="weapon-display" id="weapon-display">
+                    <span class="weapon-value" id="weapon-value">—</span>
+                    <span class="weapon-defeated" id="weapon-defeated">No weapon equipped</span>
+                </div>
+            </div>
+            
+            <div class="hud-item turn-panel">
+                <span class="hud-label">Turn</span>
+                <span class="turn-counter" id="turn-counter">0</span>
+            </div>
+            
+            <div class="hud-item deck-panel">
+                <span class="hud-label">Deck</span>
+                <span class="deck-count" id="deck-count">44</span>
+            </div>
+            
+            <div class="hud-item discard-panel">
+                <span class="hud-label">Discard</span>
+                <span class="discard-count" id="discard-count">0</span>
+            </div>
+        </section>
+
+        <!-- Main game area -->
+        <main class="game-main">
+            <!-- Status message -->
+            <div class="game-status" id="game-status" aria-live="polite">
+                Click "New Game" to begin your dungeon crawl!
+            </div>
+
+            <!-- Room display (4 cards) -->
+            <section class="room-container" aria-label="Current room with cards">
+                <div class="room-wrapper">
+                    <!-- Deck pile on the left -->
+                    <div class="deck-pile" id="deck-pile" aria-label="Deck pile">
+                        <img src="scoundrel-images/deck.jpg" alt="Deck">
+                        <span class="deck-count-overlay" id="deck-count-overlay">44</span>
+                    </div>
+                    
+                    <!-- Room cards -->
+                    <div class="room-grid" id="room-grid">
+                        <div class="card-slot" data-slot="0">
+                            <div class="card" id="card-0">
+                                <div class="card-inner">
+                                    <div class="card-front" aria-label="Empty card slot"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-slot" data-slot="1">
+                            <div class="card" id="card-1">
+                                <div class="card-inner">
+                                    <div class="card-front" aria-label="Empty card slot"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-slot" data-slot="2">
+                            <div class="card" id="card-2">
+                                <div class="card-inner">
+                                    <div class="card-front" aria-label="Empty card slot"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-slot" data-slot="3">
+                            <div class="card" id="card-3">
+                                <div class="card-inner">
+                                    <div class="card-front" aria-label="Empty card slot"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Action buttons -->
+            <div class="action-buttons" id="action-buttons">
+                <button id="avoid-btn" class="btn btn-avoid" disabled aria-label="Avoid this room">
+                    Avoid Room
+                </button>
+            </div>
+        </main>
+
+        <!-- Action log -->
+        <section class="action-log-container" aria-label="Game log">
+            <h2 class="log-title">Action Log</h2>
+            <div class="action-log" id="action-log" role="log" aria-live="polite" aria-atomic="false">
+                <p class="log-entry">Welcome to Scoundrel! Press "New Game" to start.</p>
+            </div>
+        </section>
+
+        <!-- Debug panel (hidden by default) -->
+        <aside class="debug-panel" id="debug-panel" hidden aria-label="Debug information">
+            <h3>Debug Panel</h3>
+            <div class="debug-content">
+                <div class="debug-item">
+                    <label>Seed:</label>
+                    <span id="debug-seed">—</span>
+                </div>
+                <div class="debug-item">
+                    <label>Deck Order:</label>
+                    <pre id="debug-deck">—</pre>
+                </div>
+                <div class="debug-item">
+                    <label>Carry Card:</label>
+                    <span id="debug-carry">—</span>
+                </div>
+                <div class="debug-item">
+                    <label>Used Potion:</label>
+                    <span id="debug-potion">false</span>
+                </div>
+                <div class="debug-item">
+                    <label>Can Avoid:</label>
+                    <span id="debug-avoid">true</span>
+                </div>
+                <div class="debug-item">
+                    <label>Cards Resolved:</label>
+                    <span id="debug-resolved">0</span>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal-overlay" id="help-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">How to Play Scoundrel</h2>
+                <button class="modal-close" id="modal-close" aria-label="Close help modal">
+                    &times;
+                </button>
+            </div>
+            <div class="modal-body">
+                <section class="rules-section">
+                    <h3>Overview</h3>
+                    <p>Scoundrel is a solo dungeon-crawl card game. Manage your health, weapons, and potions to survive against monsters and clear the dungeon!</p>
+                </section>
+
+                <section class="rules-section">
+                    <h3>Card Types</h3>
+                    <ul>
+                        <li><strong>Monsters (♣/♠):</strong> Values 2-10, J(11), Q(12), K(13), A(14). They deal damage equal to their value.</li>
+                        <li><strong>Weapons (♦ 2-10):</strong> Reduce damage from monsters. Discard old weapon when equipping new one.</li>
+                        <li><strong>Potions (♥ 2-10):</strong> Heal by their value, capped at 20. Only one potion per room.</li>
+                    </ul>
+                </section>
+
+                <section class="rules-section">
+                    <h3>Gameplay</h3>
+                    <ol>
+                        <li>Each turn, draw cards until 4 are visible (the Room).</li>
+                        <li>Choose to <strong>Avoid</strong> (put all 4 cards at bottom of deck) or <strong>Face</strong> the room.</li>
+                        <li>When facing, resolve 3 cards in any order. The 4th card carries to the next room.</li>
+                        <li>You cannot avoid twice in a row.</li>
+                    </ol>
+                </section>
+
+                <section class="rules-section">
+                    <h3>Combat Rules</h3>
+                    <ul>
+                        <li><strong>Bare-handed:</strong> Take full monster value as damage.</li>
+                        <li><strong>With weapon:</strong> Damage = monster value - weapon value (min 0).</li>
+                        <li><strong>Weapon rule:</strong> A weapon can only fight monsters with value ≤ its last defeated monster.</li>
+                        <li>Example: Weapon defeats a 7, then can only fight monsters ≤ 7.</li>
+                    </ul>
+                </section>
+
+                <section class="rules-section">
+                    <h3>Winning & Losing</h3>
+                    <ul>
+                        <li><strong>Win:</strong> Clear all cards from the deck. Score = remaining health.</li>
+                        <li><strong>Lose:</strong> Health drops to 0. Score = -(sum of remaining monster values).</li>
+                    </ul>
+                </section>
+
+                <section class="rules-section">
+                    <h3>Tips</h3>
+                    <ul>
+                        <li>Plan your card order carefully - the 4th card carries over!</li>
+                        <li>Sometimes avoiding is better than taking damage.</li>
+                        <li>Keep track of which monsters your weapon can still fight.</li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div class="modal-overlay" id="gameover-modal" role="dialog" aria-modal="true" aria-labelledby="gameover-title" hidden>
+        <div class="modal-content gameover-content">
+            <div class="modal-header">
+                <h2 id="gameover-title">Game Over</h2>
+            </div>
+            <div class="modal-body">
+                <div class="gameover-result" id="gameover-result"></div>
+                <div class="gameover-score" id="gameover-score"></div>
+                <div class="gameover-details" id="gameover-details"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="gameover-new" class="btn btn-primary">New Game</button>
+                <button id="gameover-close" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
