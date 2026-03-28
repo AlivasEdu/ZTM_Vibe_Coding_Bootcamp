@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aesthetic Generator</title>
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Source+Sans+3:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg: #f9fafb;
+        --text: #111;
+        --card: #fff;
+        --muted: #eee;
+        --accent: #6366f1;
+        --border: #ddd;
+      }
+
+      html.theme-dark {
+        --bg: #18181b;
+        --text: #f4f4f5;
+        --card: #27272a;
+        --muted: #3a3a3a;
+        --border: #444;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Source Sans 3";
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: auto;
+        padding: 1rem;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      h1,
+      h2 {
+        font-family: Inter;
+      }
+
+      /* ===== TOGGLE ===== */
+      .toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .icon {
+        width: 24px;
+        height: 24px;
+        stroke: var(--text);
+        stroke-width: 2;
+        fill: var(--text);
+        opacity: 0.8;
+      }
+
+      .switch {
+        width: 46px;
+        height: 24px;
+        background: var(--muted);
+        border-radius: 999px;
+        position: relative;
+        cursor: pointer;
+        border: 1px solid var(--border);
+      }
+
+      .switch::after {
+        content: "";
+        width: 18px;
+        height: 18px;
+        background: var(--card);
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        border-radius: 50%;
+        transition: 0.2s;
+      }
+
+      html.theme-dark .switch {
+        background: var(--accent);
+      }
+
+      html.theme-dark .switch::after {
+        transform: translateX(22px);
+      }
+
+      /* ===== CONTROLS ===== */
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+        margin: 1rem 0;
+      }
+
+      button {
+        background: var(--card);
+        border: 1px solid var(--border);
+        padding: 0.5rem 0.8rem;
+        border-radius: 8px;
+        cursor: pointer;
+        color: var(--text);
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+      }
+
+      .shortcut {
+        font-size: 0.7rem;
+        opacity: 0.6;
+        margin-left: 4px;
+      }
+
+      @media (max-width: 600px) {
+        .shortcut {
+          display: none;
+        }
+      }
+
+      .controls label {
+        display: flex;
+        flex-direction: column;
+        font-size: 0.85rem;
+        color: var(--text);
+        margin-right: 1rem;
+        cursor: pointer;
+      }
+
+      .controls input[type="range"],
+      .controls select {
+        margin-top: 4px;
+      }
+
+      .controls select {
+        padding: 0.2rem 0.4rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+      }
+
+      .controls input[type="checkbox"] {
+        margin-right: 4px;
+      }
+
+      .controls [title]:hover::after {
+        content: attr(title);
+        position: absolute;
+        top: 110%;
+        left: 0;
+        background: var(--card);
+        color: var(--text);
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        white-space: nowrap;
+        z-index: 10;
+      }
+
+      /* ===== LAYOUT ===== */
+      .grid {
+        display: grid;
+        gap: 1rem;
+      }
+
+      @media (min-width: 768px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .card {
+        background: var(--card);
+        padding: 1rem;
+        border-radius: 12px;
+      }
+
+      /* ===== PALETTE ===== */
+      .palette {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .swatch {
+        flex: 1 1 90px;
+        min-height: 70px;
+        border-radius: 8px;
+        padding: 0.4rem;
+        cursor: pointer;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        font-size: 0.75rem;
+        color: #fff;
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+      }
+
+      /* ===== PREVIEW ===== */
+      .preview {
+        border-radius: 12px;
+        padding: 1rem;
+      }
+
+      /* ===== FAVORITES ===== */
+      .favorite {
+        border: 1px solid var(--border);
+        padding: 0.5rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+      }
+
+      .favorite-swatches {
+        display: flex;
+        gap: 2px;
+        margin-top: 4px;
+      }
+
+      .favorite-swatches div {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <h1>Aesthetic Generator</h1>
+
+        <div class="toggle">
+          <!-- Sun with rays -->
+          <svg class="icon" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5" />
+            <g stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="4" />
+              <line x1="12" y1="20" x2="12" y2="23" />
+              <line x1="1" y1="12" x2="4" y2="12" />
+              <line x1="20" y1="12" x2="23" y2="12" />
+              <line x1="4.2" y1="4.2" x2="6.5" y2="6.5" />
+              <line x1="17.5" y1="17.5" x2="19.8" y2="19.8" />
+              <line x1="4.2" y1="19.8" x2="6.5" y2="17.5" />
+              <line x1="17.5" y1="6.5" x2="19.8" y2="4.2" />
+            </g>
+          </svg>
+
+          <div id="themeToggle" class="switch"></div>
+
+          <!-- Moon -->
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" />
+          </svg>
+        </div>
+      </header>
+
+      <main>
+        <section class="controls">
+          <button
+            class="btn-primary"
+            id="shuffleBtn"
+            title="Randomly generate a new palette"
+          >
+            Shuffle <span class="shortcut">(Space)</span>
+          </button>
+          <button id="saveBtn" title="Save the current palette to Favorites">
+            Save <span class="shortcut">(S)</span>
+          </button>
+          <button id="copyCssBtn" title="Copy CSS variables for the palette">
+            Copy CSS <span class="shortcut">(C)</span>
+          </button>
+          <button id="exportJsonBtn" title="Export the palette as JSON">
+            Export JSON
+          </button>
+
+          <input
+            type="color"
+            id="colorPicker"
+            title="Pick a base color for your palette"
+          />
+
+          <label title="Lock this color as the first color in the palette">
+            <input type="checkbox" id="lockFirst" /> Use as first
+          </label>
+
+          <label title="Adjust the saturation of the palette">
+            Saturation
+            <input type="range" id="sat" min="-30" max="30" value="0" />
+          </label>
+
+          <label title="Number of colors in the palette">
+            Swatch count
+            <select id="count">
+              <option value="auto">Auto (4–6)</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </label>
+        </section>
+
+        <div class="grid">
+          <section class="card">
+            <h2>Palette</h2>
+            <div id="palette" class="palette"></div>
+          </section>
+
+          <section class="card">
+            <h2>Preview</h2>
+            <div id="preview" class="preview"></div>
+          </section>
+        </div>
+
+        <section class="card">
+          <h2>Favorites</h2>
+          <div id="favorites"></div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const state = { palette: [] };
+
+      function randomColor() {
+        return (
+          "#" +
+          Math.floor(Math.random() * 16777215)
+            .toString(16)
+            .padStart(6, "0")
+        );
+      }
+
+      function adjustSaturation(hex, delta) {
+        let r = parseInt(hex.substr(1, 2), 16) / 255;
+        let g = parseInt(hex.substr(3, 2), 16) / 255;
+        let b = parseInt(hex.substr(5, 2), 16) / 255;
+
+        let max = Math.max(r, g, b),
+          min = Math.min(r, g, b);
+        let h,
+          s,
+          l = (max + min) / 2;
+
+        if (max === min) {
+          h = s = 0;
+        } else {
+          let d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          switch (max) {
+            case r:
+              h = (g - b) / d + (g < b ? 6 : 0);
+              break;
+            case g:
+              h = (b - r) / d + 2;
+              break;
+            case b:
+              h = (r - g) / d + 4;
+              break;
+          }
+          h /= 6;
+        }
+
+        s = Math.min(Math.max(s + delta / 100, 0), 1);
+
+        function hsl2rgb(h, s, l) {
+          let r, g, b;
+          if (s === 0) {
+            r = g = b = l;
+          } else {
+            function hue2rgb(p, q, t) {
+              if (t < 0) t += 1;
+              if (t > 1) t -= 1;
+              if (t < 1 / 6) return p + (q - p) * 6 * t;
+              if (t < 1 / 2) return q;
+              if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+              return p;
+            }
+            let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            let p = 2 * l - q;
+            r = hue2rgb(p, q, h + 1 / 3);
+            g = hue2rgb(p, q, h);
+            b = hue2rgb(p, q, h - 1 / 3);
+          }
+          return (
+            "#" +
+            Math.round(r * 255)
+              .toString(16)
+              .padStart(2, "0") +
+            Math.round(g * 255)
+              .toString(16)
+              .padStart(2, "0") +
+            Math.round(b * 255)
+              .toString(16)
+              .padStart(2, "0")
+          );
+        }
+
+        return hsl2rgb(h, s, l);
+      }
+
+      function generatePalette(base = null) {
+        const countSel = document.getElementById("count").value;
+        const count =
+          countSel === "auto"
+            ? 4 + Math.floor(Math.random() * 3)
+            : parseInt(countSel);
+        const palette = [];
+        const satDelta = parseInt(document.getElementById("sat").value);
+
+        for (let i = 0; i < count; i++) {
+          let color = randomColor();
+          color = adjustSaturation(color, satDelta);
+          palette.push(color);
+        }
+
+        if (base && document.getElementById("lockFirst").checked) {
+          palette[0] = adjustSaturation(base, satDelta);
+        }
+
+        return palette;
+      }
+
+      function renderPalette() {
+        const el = document.getElementById("palette");
+        el.innerHTML = "";
+        state.palette.forEach((c) => {
+          const d = document.createElement("div");
+          d.className = "swatch";
+          d.style.background = c;
+          d.innerText = c;
+          d.onclick = () => navigator.clipboard.writeText(c);
+          el.appendChild(d);
+        });
+      }
+
+      function renderPreview() {
+        const p = state.palette;
+        document.getElementById("preview").innerHTML = `
+          <div style="background:${p[0]};padding:1rem;border-radius:10px;">
+            <h1 style="color:${p[1]}">Heading</h1>
+            <p style="color:${p[2]}">Example text content.</p>
+            <button style="background:${p[3]};color:#fff;border:none;padding:.5rem 1rem;">Button</button>
+          </div>
+        `;
+      }
+
+      document.getElementById("shuffleBtn").onclick = () => {
+        state.palette = generatePalette(
+          document.getElementById("colorPicker").value,
+        );
+        renderPalette();
+        renderPreview();
+      };
+
+      document.getElementById("colorPicker").addEventListener("input", (e) => {
+        state.palette = generatePalette(e.target.value);
+        renderPalette();
+        renderPreview();
+      });
+
+      // ✅ Saturation live-adjust without shuffling
+      document.getElementById("sat").addEventListener("input", () => {
+        const satDelta = parseInt(document.getElementById("sat").value);
+        const base = document.getElementById("colorPicker").value;
+
+        state.palette = state.palette.map((color, i) => {
+          if (i === 0 && document.getElementById("lockFirst").checked) {
+            return adjustSaturation(base, satDelta);
+          }
+          return adjustSaturation(color, satDelta);
+        });
+
+        renderPalette();
+        renderPreview();
+      });
+
+      document.getElementById("saveBtn").onclick = () => {
+        const data = JSON.parse(
+          localStorage.getItem("aesthetic.favorites") || "[]",
+        );
+        data.push(state);
+        localStorage.setItem("aesthetic.favorites", JSON.stringify(data));
+        renderFavorites();
+      };
+
+      function renderFavorites() {
+        const data = JSON.parse(
+          localStorage.getItem("aesthetic.favorites") || "[]",
+        );
+        const el = document.getElementById("favorites");
+        el.innerHTML = "";
+
+        data.forEach((item) => {
+          const d = document.createElement("div");
+          d.className = "favorite";
+          d.innerHTML = `<div class="favorite-swatches">
+            ${item.palette.map((c) => `<div style="background:${c}"></div>`).join("")}
+          </div>`;
+          d.onclick = () => {
+            state.palette = item.palette;
+            renderPalette();
+            renderPreview();
+          };
+          el.appendChild(d);
+        });
+      }
+
+      document.getElementById("copyCssBtn").onclick = () => {
+        const css = state.palette
+          .map((c, i) => `--color-${i + 1}:${c};`)
+          .join("\n");
+        navigator.clipboard.writeText(css);
+      };
+
+      document.getElementById("exportJsonBtn").onclick = () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)]);
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "palette.json";
+        a.click();
+      };
+
+      document.getElementById("themeToggle").onclick = () => {
+        document.documentElement.classList.toggle("theme-dark");
+      };
+
+      document.addEventListener("keydown", (e) => {
+        if (e.code === "Space") {
+          e.preventDefault();
+          shuffleBtn.click();
+        }
+        if (e.key === "s") saveBtn.click();
+        if (e.key === "c") copyCssBtn.click();
+      });
+
+      state.palette = generatePalette();
+      renderPalette();
+      renderPreview();
+      renderFavorites();
+    </script>
+  </body>
+</html>
