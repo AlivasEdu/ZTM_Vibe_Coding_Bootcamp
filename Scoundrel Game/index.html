@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Scoundrel - A solo dungeon-crawl card game">
     <title>Scoundrel - Solo Card Game</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗡️</text></svg>">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -123,11 +124,17 @@
 
         <!-- Action log -->
         <section class="action-log-container" aria-label="Game log">
-            <h2 class="log-title">Action Log</h2>
+            <div class="log-header">
+                <h2 class="log-title">Action Log</h2>
+                <button class="log-close-btn" id="log-close-btn" aria-label="Close log">&times;</button>
+            </div>
             <div class="action-log" id="action-log" role="log" aria-live="polite" aria-atomic="false">
                 <p class="log-entry">Welcome to Scoundrel! Press "New Game" to start.</p>
             </div>
         </section>
+        
+        <!-- Mobile log button -->
+        <button class="mobile-log-btn" id="mobile-log-btn" aria-label="Show action log">LOG</button>
 
         <!-- Debug panel (hidden by default) -->
         <aside class="debug-panel" id="debug-panel" hidden aria-label="Debug information">

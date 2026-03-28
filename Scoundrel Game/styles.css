@@ -530,25 +530,22 @@ body {
     overflow: hidden;
     box-shadow: var(--shadow-lg);
     border: 3px solid rgba(255, 255, 255, 0.2);
-}
-
-.card-front {
     transform: rotateY(180deg);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: stretch;
     background: #f5f5f5;
-}
-
-.card-front {
-    position: relative;
+    padding: 0;
+    margin: 0;
 }
 
 .card-front img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
+    border-radius: 0;
 }
 
 /* Card corners for value display */
@@ -590,19 +587,37 @@ body {
 }
 
 
+/* Card Suit Border Colors */
+.card.clubs .card-front {
+    border-color: #2d3436;
+    box-shadow: 0 0 15px rgba(45, 52, 54, 0.5);
+}
+
+.card.spades .card-front {
+    border-color: #1a1a2e;
+    box-shadow: 0 0 15px rgba(26, 26, 46, 0.5);
+}
+
+.card.diamonds .card-front {
+    border-color: #e17055;
+    box-shadow: 0 0 15px rgba(225, 112, 85, 0.5);
+}
+
+.card.hearts .card-front {
+    border-color: #d63031;
+    box-shadow: 0 0 15px rgba(214, 48, 49, 0.5);
+}
+
 /* Card Type Styles */
 .card.monster .card-front {
-    border-color: var(--color-text-accent);
     background: linear-gradient(135deg, #2d3436 0%, #1a1a2e 100%);
 }
 
 .card.weapon .card-front {
-    border-color: var(--color-weapon-diamond);
     background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
 }
 
 .card.potion .card-front {
-    border-color: var(--color-potion-heart);
     background: linear-gradient(135deg, #d63031 0%, #c0392b 100%);
 }
 
@@ -936,13 +951,19 @@ body {
 /* Responsive Design */
 @media (max-width: 768px) {
     :root {
-        --card-width: 80px;
-        --card-height: 112px;
+        --card-width: 40vw;
+        --card-height: calc(40vw * 1.4);
+    }
+    
+    .game-container {
+        padding: var(--spacing-xs);
     }
     
     .game-header {
         flex-direction: column;
         text-align: center;
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
     }
     
     .game-header h1 {
@@ -955,77 +976,95 @@ body {
     
     .hud {
         grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm);
+    }
+    
+    .deck-pile {
+        display: none;
+    }
+    
+    .room-wrapper {
+        justify-content: center;
     }
     
     .room-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
         gap: var(--spacing-sm);
-        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .action-log-container {
+        display: none;
+    }
+    
+    .action-log-container.mobile-visible {
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 100;
+        max-height: none;
+        border-radius: 0;
+        background: var(--color-bg-primary);
+    }
+    
+    .log-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-md);
+        background: rgba(0, 0, 0, 0.3);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .log-close-btn {
+        background: transparent;
+        border: none;
+        color: var(--color-text-primary);
+        font-size: var(--font-size-xl);
+        cursor: pointer;
+        padding: var(--spacing-xs);
+    }
+    
+    .mobile-log-btn {
+        display: block;
+        position: fixed;
+        bottom: var(--spacing-md);
+        right: var(--spacing-md);
+        background: var(--color-btn-secondary);
+        color: white;
+        border: 2px solid var(--color-text-accent);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: var(--font-size-sm);
+        z-index: 50;
+        cursor: pointer;
     }
     
     .card-value {
-        font-size: var(--font-size-sm);
+        font-size: var(--font-size-base);
     }
     
     .card-suit {
+        font-size: var(--font-size-lg);
+    }
+    
+    .card-corner {
         font-size: var(--font-size-base);
-    }
-    
-    .btn {
-        padding: var(--spacing-xs) var(--spacing-md);
-        font-size: var(--font-size-sm);
-    }
-    
-    .btn-avoid {
-        padding: var(--spacing-sm) var(--spacing-md);
-        font-size: var(--font-size-base);
-    }
-    
-    .modal-content {
-        max-height: 80vh;
-    }
-    
-    .debug-panel {
-        max-width: 250px;
-        font-size: 10px;
     }
 }
 
 @media (max-width: 480px) {
     :root {
-        --card-width: 65px;
-        --card-height: 91px;
+        --card-width: 42vw;
+        --card-height: calc(42vw * 1.4);
     }
     
     .room-grid {
         gap: var(--spacing-xs);
-    }
-    
-    .hud {
-        grid-template-columns: 1fr 1fr;
-        gap: var(--spacing-sm);
-    }
-    
-    .hud-item {
-        padding: var(--spacing-sm);
-    }
-    
-    .health-panel {
-        grid-column: span 2;
-        min-width: auto;
-    }
-    
-    .game-status {
-        font-size: var(--font-size-base);
-        min-height: 50px;
-    }
-    
-    .action-buttons {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .btn-avoid {
-        width: 100%;
     }
 }
 

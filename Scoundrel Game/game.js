@@ -84,20 +84,31 @@ function getCardValue(rank) {
 }
 
 /**
- * Get random image for card type
+ * Get image for card type based on value
+ * Lower values (2-5): image 1
+ * Medium values (6-10): image 2
+ * Face cards (J, Q, K, A): image 3
  * @param {string} suit - Card suit
+ * @param {number} value - Card value
  * @returns {string} - Image filename
  */
-function getCardImage(suit) {
-    const randomNum = Math.floor(Math.random() * 3) + 1;
+function getCardImage(suit, value) {
+    let imageNum;
+    if (value <= 5) {
+        imageNum = 1; // Lower values
+    } else if (value <= 10) {
+        imageNum = 2; // Medium values
+    } else {
+        imageNum = 3; // Face cards (J=11, Q=12, K=13, A=14)
+    }
     
     switch (suit) {
         case SUITS.CLUBS:
-            return `club-${randomNum}.jpg`;
+            return `club-${imageNum}.jpg`;
         case SUITS.SPADES:
-            return `spade-${randomNum}.jpg`;
+            return `spade-${imageNum}.jpg`;
         case SUITS.DIAMONDS:
-            return `diamond-${randomNum}.jpg`;
+            return `diamond-${imageNum}.jpg`;
         case SUITS.HEARTS:
             return `heart.jpg`;
         default:
@@ -129,7 +140,7 @@ function createCard(suit, rank) {
         value,
         type,
         id: `${suit}${rank}`,
-        image: getCardImage(suit)
+        image: getCardImage(suit, value)
     };
 }
 
@@ -712,6 +723,23 @@ class GameUI {
         });
         this.elements.gameoverClose.addEventListener('click', () => this.hideGameOver());
         
+        // Mobile log toggle
+        const mobileLogBtn = document.getElementById('mobile-log-btn');
+        const logCloseBtn = document.getElementById('log-close-btn');
+        const actionLogContainer = document.querySelector('.action-log-container');
+        
+        if (mobileLogBtn) {
+            mobileLogBtn.addEventListener('click', () => {
+                actionLogContainer.classList.add('mobile-visible');
+            });
+        }
+        
+        if (logCloseBtn) {
+            logCloseBtn.addEventListener('click', () => {
+                actionLogContainer.classList.remove('mobile-visible');
+            });
+        }
+        
         // Keyboard navigation
         document.addEventListener('keydown', (e) => this.handleKeyboard(e));
     }
@@ -843,6 +871,12 @@ class GameUI {
                 cardEl.classList.remove('card-back', 'resolved');
                 cardEl.classList.add('flip', card.type);
                 
+                // Add suit class for border color
+                const suitClass = card.suit === '♣' ? 'clubs' : 
+                                  card.suit === '♠' ? 'spades' : 
+                                  card.suit === '♦' ? 'diamonds' : 'hearts';
+                cardEl.classList.add(suitClass);
+                
                 // Add drawing animation for newly drawn cards
                 if (!cardEl.classList.contains('flip')) {
                     cardEl.classList.add('drawing');
@@ -859,8 +893,8 @@ class GameUI {
                 const front = cardEl.querySelector('.card-front');
                 front.innerHTML = `
                     <img src="scoundrel-images/${card.image}" alt="${card.suit}${card.rank}">
-                    <span class="card-corner top-right">${card.rank}</span>
-                    <span class="card-corner bottom-left">${card.rank}</span>
+                    <span class="card-corner top-right">${card.rank}${card.suit}</span>
+                    <span class="card-corner bottom-left">${card.rank}${card.suit}</span>
                 `;
                 
                 // Add click handler for unresolved cards only
