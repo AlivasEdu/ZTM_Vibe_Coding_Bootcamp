@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Compliment Generator</title>
+
+    <!-- Import Google Fonts: Nunito for compliments, Lato for UI elements -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Nunito:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* ==========================================================================
+           CSS Styling
+           ========================================================================== */
+
+      :root {
+        --text-color: #212529;
+        --btn-color: #ff6b6b;
+        --btn-hover: #ffd166;
+        --font-compliment: "Nunito", sans-serif;
+        --font-ui: "Lato", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        /* Animated Gradient Background */
+        background: linear-gradient(-45deg, #ff9a9e, #fecfef, #a1c4fd, #c2e9fb);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+        color: var(--text-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px;
+        overflow: hidden; /* Prevent scrollbars during animations */
+      }
+
+      @keyframes gradientBG {
+        0% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+        100% {
+          background-position: 0% 50%;
+        }
+      }
+
+      .container {
+        /* Glassmorphism Effect */
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.8),
+          rgba(255, 255, 255, 0.4)
+        );
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+        border-right: 1px solid rgba(255, 255, 255, 0.4);
+        padding: 50px 40px;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        max-width: 600px;
+        width: 100%;
+
+        /* Vertical Height */
+        min-height: 450px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-evenly;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Glass Shine - Initial State (hidden off to the left) */
+      .container::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -150%;
+        width: 60%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.6),
+          transparent
+        );
+        transform: skewX(-25deg);
+        pointer-events: none; /* Ensure it doesn't block button clicks */
+      }
+
+      /* Class added via JS to trigger the shine once per click */
+      .container.animate-shine::after {
+        animation: singleShine 0.8s ease-out forwards;
+      }
+
+      @keyframes singleShine {
+        0% {
+          left: -150%;
+        }
+        100% {
+          left: 250%;
+        }
+      }
+
+      #compliment-display {
+        font-family: var(--font-compliment);
+        font-size: 1.85rem;
+        line-height: 1.4;
+        margin-bottom: 40px;
+        color: var(--text-color);
+        min-height: 140px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 10px;
+
+        /* Springy scale and fade transition */
+        transition:
+          opacity 0.4s ease,
+          transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      #compliment-display.hide {
+        opacity: 0;
+        transform: scale(0.85);
+      }
+
+      #generate-btn {
+        font-family: var(--font-ui);
+        background: linear-gradient(135deg, var(--btn-color), #ff8e8e);
+        color: #ffffff;
+        border: none;
+        padding: 16px 36px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        border-radius: 50px;
+        cursor: pointer;
+        z-index: 2; /* Keep button above the shine effect */
+
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+      }
+
+      #generate-btn:hover {
+        background: linear-gradient(135deg, var(--btn-hover), #ffea9f);
+        color: var(--text-color);
+        box-shadow: 0 10px 25px rgba(255, 209, 102, 0.6);
+        transform: translateY(-3px);
+      }
+
+      #generate-btn:active {
+        transform: scale(0.95) translateY(2px);
+      }
+
+      @media (max-width: 480px) {
+        .container {
+          padding: 40px 20px;
+          min-height: 400px;
+        }
+        #compliment-display {
+          font-size: 1.5rem;
+        }
+        #generate-btn {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container" id="main-container">
+      <h1 id="compliment-display">
+        You're the "skip ad" button to a bad day. ⏭️
+      </h1>
+      <button id="generate-btn">Get a New Compliment</button>
+    </main>
+
+    <script>
+      const compliments = [
+        "You're the human equivalent of finding an extra fry in the bag. 🍟",
+        "If you were a vegetable, you'd be a cute-cumber! 🥒",
+        "You have the kind of energy that makes plants grow faster. 🌿",
+        "You plug the USB in right on the very first try. 🔌",
+        "You are cooler than the other side of the pillow. 🧊",
+        "You're more fun than a giant sheet of bubble wrap! 🫧",
+        "I would share my very last slice of pizza with you. 🍕",
+        "You have 'main character' energy. 🎬",
+        "You're the human version of a golden retriever. 🐕",
+        "If you were a triangle, you'd be acute one! 📐",
+        "You could definitely survive a zombie apocalypse. 🧟‍♂️",
+        "Your vibe is like a perfectly warmed blanket fresh from the dryer. 🛌",
+        "You make ordinary moments totally extraordinary. ✨",
+        "You're smarter than a really smart dolphin. 🐬",
+        "Your Wi-Fi signal is probably incredibly strong. 📶",
+        "You have impeccable taste in everything. 🤌",
+        "Your laugh is highly contagious. 😆",
+        "You're the reason someone smiled today. 😊",
+        "You look like you know exactly where north is at all times. 🧭",
+        "If you were a color, you'd be the brightest one in the box. 🖍️",
+        "You give the best high-fives in the universe. 🙌",
+        "I bet you've never accidentally hit 'Reply All' on an embarrassing email. 📧",
+        "You're like a software update that actually fixes things! 💻",
+        "You are a limited edition, one-of-a-kind masterpiece. 🎨",
+        "Even your bad hair days look like a magazine cover. 📸",
+        "Your playlists must be absolute fire. 🔥",
+        "You are an incredibly awesome friend. 🤝",
+        "You could win a staring contest with an owl. 🦉",
+        "You always know exactly what to say. 💬",
+        "You're the perfectly toasted marshmallow of my s'more. 🏕️",
+        "Your energy lights up the entire room. 💡",
+        "You make a rainy day feel like a cozy adventure. ☔",
+        "You're a total rockstar, minus the trashed hotel rooms. 🎸",
+        "Your perspective is incredibly refreshing. 🍃",
+        "You're as sweet as a bakery on a Sunday morning. 🍩",
+        "You have the heart of a lion and the soul of a puppy. 🦁",
+        "If you were a fruit, you'd be a fine-apple. 🍍",
+        "I would totally trust you to hold my drink at a party. 🥤",
+        "You always pass the vibe check. ✅",
+        "You're a human cup of hot chocolate with mini marshmallows. ☕",
+        "You outshine the disco ball. 🪩",
+        "You're the twist at the end of a great movie. 🍿",
+        "Your kindness is a balm to everyone you meet. 🩹",
+        "You are a literal genius. 🧠",
+        "You bring out the absolute best in other people. ⭐",
+        "You're like an oasis in the desert. 🌴",
+        "You could outsmart a fox. 🦊",
+        "Your creative potential seems totally limitless. 🚀",
+        "You're the 'skip ad' button to a bad day. ⏭️",
+        "You make the world a much better place. 🌍",
+        "You are doing great things today! 🏆",
+        "You should be so proud of yourself. 👏",
+        "You are enough just exactly as you are. 💖",
+        "You're far stronger than you even realize. 💪",
+        "Your smile could instantly disarm a supervillain. 🦹",
+        "You have a 100% battery charge kind of aura. 🔋",
+        "You're the cherry on top of an already amazing sundae. 🍒",
+        "If you were a font, you'd be something classy but fun. 🔤",
+        "You're a glowing example of awesomeness. 🌟",
+        "You make difficult things look completely effortless. 🎩",
+        "You're more magical than a unicorn eating a taco. 🦄🌮",
+        "Your soul is absolutely beautiful. 🕊️",
+        "You're the human equivalent of an extra chicken nugget. 🍗",
+        "You are braver than a knight in shining armor. ⚔️",
+        "You're a walking, talking ray of sunshine. ☀️",
+        "You have the best ideas. 💡",
+        "Your positive attitude is truly inspiring. 🌈",
+        "You're the peanut butter to my jelly. 🥜",
+        "You could make a sloth want to run a marathon. 🦥",
+        "You are a force of nature. 🌪️",
+        "You're the plot twist I never saw coming (in a good way). 📖",
+        "You're like a perfectly timed joke. 😂",
+        "You have a heart of solid gold. 🥇",
+        "You could probably negotiate peace with aliens. 👽",
+        "You're a masterpiece and a work in progress all at once. 🖌️",
+        "You make everyone feel so welcomed and seen. 🚪",
+        "You're like an unexpected holiday on a Monday. 🎉",
+        "You are beautifully complex. 🧩",
+        "You're the secret ingredient in the recipe of life. 🧂",
+        "Your joy is completely infectious. 😄",
+        "You are made of stardust and magic. ✨",
+        "You always leave things better than you found them. 🌱",
+        "You're an absolute legend. 👑",
+        "You have a remarkable ability to understand people. 👂",
+        "You're the high score on my favorite arcade game. 👾",
+        "You make everything you wear look incredibly fashionable. 👗",
+        "You are a breath of fresh air. 🌬️",
+        "You're the best thing since sliced bread. 🍞",
+        "You could teach a masterclass in being awesome. 🎓",
+        "You have a highly comforting presence. 🕯️",
+        "You're the grand prize. 🏆",
+        "You handle challenges with incredible grace. 🦢",
+        "You're rarer than a double rainbow. 🌈🌈",
+        "You are a treasure. 💎",
+        "Your future is looking exceedingly bright. 🔭",
+        "You're a brilliant puzzle piece that fits perfectly. 🧩",
+        "You always know how to find the silver lining. ⛅",
+        "You are spectacularly unique. 🦚",
+        "You're the superhero this world definitely needs. 🦸",
+        "I'm so glad you exist! 🥰",
+      ];
+
+      const complimentDisplay = document.getElementById("compliment-display");
+      const generateBtn = document.getElementById("generate-btn");
+      const mainContainer = document.getElementById("main-container");
+
+      let lastIndex = -1;
+
+      function getNewCompliment() {
+        let randomIndex;
+
+        do {
+          randomIndex = Math.floor(Math.random() * compliments.length);
+        } while (randomIndex === lastIndex && compliments.length > 1);
+
+        lastIndex = randomIndex;
+
+        // 1. Start the text hide animation
+        complimentDisplay.classList.add("hide");
+
+        // 2. Clear any existing shine animation by removing the class
+        mainContainer.classList.remove("animate-shine");
+
+        // Trigger a reflow to allow the browser to recognize the class was removed
+        // before we add it back to restart the animation
+        void mainContainer.offsetWidth;
+
+        // 3. Set a small timeout to change the text and trigger the shine
+        setTimeout(() => {
+          // Change text
+          complimentDisplay.textContent = compliments[randomIndex];
+
+          // Show text again with the "pop"
+          complimentDisplay.classList.remove("hide");
+
+          // Trigger the glass shine animation
+          mainContainer.classList.add("animate-shine");
+        }, 350);
+      }
+
+      generateBtn.addEventListener("click", getNewCompliment);
+    </script>
+  </body>
+</html>
