@@ -1,341 +1,460 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Compliment Generator</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliment & Joke Card</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🃏</text></svg>">
 
-    <!-- Import Google Fonts: Nunito for compliments, Lato for UI elements -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Nunito:wght@400;600&display=swap"
-      rel="stylesheet"
-    />
-
+    <!-- Import Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+    
     <style>
-      /* ==========================================================================
+        /* ==========================================================================
            CSS Styling
            ========================================================================== */
-
-      :root {
-        --text-color: #212529;
-        --btn-color: #ff6b6b;
-        --btn-hover: #ffd166;
-        --font-compliment: "Nunito", sans-serif;
-        --font-ui: "Lato", sans-serif;
-      }
-
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-
-      body {
-        /* Animated Gradient Background */
-        background: linear-gradient(-45deg, #ff9a9e, #fecfef, #a1c4fd, #c2e9fb);
-        background-size: 400% 400%;
-        animation: gradientBG 15s ease infinite;
-        color: var(--text-color);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
-        padding: 20px;
-        overflow: hidden; /* Prevent scrollbars during animations */
-      }
-
-      @keyframes gradientBG {
-        0% {
-          background-position: 0% 50%;
+        
+        :root {
+            --text-color: #212529;
+            --compliment-btn: #FF6B6B;
+            --joke-btn: #4ECDC4;
+            --punchline-color: #e73c7e;
+            --btn-hover: #FFD166;
+            --font-display: 'Nunito', sans-serif;
+            --font-ui: 'Lato', sans-serif;
         }
-        50% {
-          background-position: 100% 50%;
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-        100% {
-          background-position: 0% 50%;
+
+        body {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
         }
-      }
 
-      .container {
-        /* Glassmorphism Effect */
-        background: linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.8),
-          rgba(255, 255, 255, 0.4)
-        );
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.8);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-        border-right: 1px solid rgba(255, 255, 255, 0.4);
-        padding: 50px 40px;
-        border-radius: 24px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        text-align: center;
-        max-width: 600px;
-        width: 100%;
-
-        /* Vertical Height */
-        min-height: 450px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-evenly;
-        align-items: center;
-        position: relative;
-        overflow: hidden;
-      }
-
-      /* Glass Shine - Initial State (hidden off to the left) */
-      .container::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: -150%;
-        width: 60%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.6),
-          transparent
-        );
-        transform: skewX(-25deg);
-        pointer-events: none; /* Ensure it doesn't block button clicks */
-      }
-
-      /* Class added via JS to trigger the shine once per click */
-      .container.animate-shine::after {
-        animation: singleShine 0.8s ease-out forwards;
-      }
-
-      @keyframes singleShine {
-        0% {
-          left: -150%;
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-        100% {
-          left: 250%;
+
+        .app-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
         }
-      }
 
-      #compliment-display {
-        font-family: var(--font-compliment);
-        font-size: 1.85rem;
-        line-height: 1.4;
-        margin-bottom: 40px;
-        color: var(--text-color);
-        min-height: 140px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 10px;
-
-        /* Springy scale and fade transition */
-        transition:
-          opacity 0.4s ease,
-          transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        opacity: 1;
-        transform: scale(1);
-      }
-
-      #compliment-display.hide {
-        opacity: 0;
-        transform: scale(0.85);
-      }
-
-      #generate-btn {
-        font-family: var(--font-ui);
-        background: linear-gradient(135deg, var(--btn-color), #ff8e8e);
-        color: #ffffff;
-        border: none;
-        padding: 16px 36px;
-        font-size: 1.15rem;
-        font-weight: 700;
-        border-radius: 50px;
-        cursor: pointer;
-        z-index: 2; /* Keep button above the shine effect */
-
-        transition: all 0.3s ease;
-        box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
-      }
-
-      #generate-btn:hover {
-        background: linear-gradient(135deg, var(--btn-hover), #ffea9f);
-        color: var(--text-color);
-        box-shadow: 0 10px 25px rgba(255, 209, 102, 0.6);
-        transform: translateY(-3px);
-      }
-
-      #generate-btn:active {
-        transform: scale(0.95) translateY(2px);
-      }
-
-      @media (max-width: 480px) {
-        .container {
-          padding: 40px 20px;
-          min-height: 400px;
+        .playing-card {
+            width: 320px;
+            height: 448px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
         }
-        #compliment-display {
-          font-size: 1.5rem;
+
+        /* Glass Shine Effect */
+        .playing-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -150%;
+            width: 80%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+            transform: skewX(-25deg);
+            pointer-events: none;
         }
-        #generate-btn {
-          width: 100%;
+
+        .playing-card.animate-shine::after {
+            animation: singleShine 0.8s ease-out forwards;
         }
-      }
+
+        @keyframes singleShine {
+            0% { left: -150%; }
+            100% { left: 250%; }
+        }
+
+        /* Dynamic Corner Circles */
+        .corner-icon {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: background-color 0.5s ease;
+        }
+
+        .top-right { top: 15px; right: 15px; }
+        .bottom-left { bottom: 15px; left: 15px; }
+
+        #content-display {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            line-height: 1.4;
+            text-align: center;
+            color: var(--text-color);
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 1;
+            transform: scale(1);
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #content-display.hide {
+            opacity: 0;
+            transform: scale(0.85);
+        }
+
+        /* Spinner Styles */
+        #spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid rgba(231, 60, 126, 0.1);
+            border-top: 3px solid var(--punchline-color);
+            border-radius: 50%;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .show-spinner #spinner {
+            display: block;
+            animation: spinLoop 1s linear infinite;
+        }
+
+        @keyframes spinLoop {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #punchline {
+            display: block;
+            margin-top: 15px;
+            font-weight: 700;
+            color: var(--punchline-color);
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+            transform: translateY(10px);
+            transition: all 0.5s ease;
+        }
+
+        #punchline.visible {
+            opacity: 1;
+            height: auto;
+            transform: translateY(0);
+        }
+
+        /* Controls Area */
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .action-btn {
+            font-family: var(--font-ui);
+            color: #ffffff; 
+            border: none;
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 12px; 
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        #compliment-btn { background: linear-gradient(135deg, var(--compliment-btn), #ff8e8e); }
+        #joke-btn { background: linear-gradient(135deg, var(--joke-btn), #34e89e); }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            filter: brightness(1.1);
+        }
+
+        .action-btn:active { transform: scale(0.95) translateY(2px); }
+
+        @media (max-width: 400px) {
+            .playing-card { width: 300px; height: 420px; padding: 30px; }
+            #content-display { font-size: 1.3rem; }
+        }
     </style>
-  </head>
-  <body>
-    <main class="container" id="main-container">
-      <h1 id="compliment-display">
-        You're the "skip ad" button to a bad day. ⏭️
-      </h1>
-      <button id="generate-btn">Get a New Compliment</button>
-    </main>
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <main class="playing-card" id="main-container">
+            <div class="corner-icon top-right" id="icon-tr">✨</div>
+            <div class="corner-icon bottom-left" id="icon-bl">✨</div>
+            
+            <div id="content-display">
+                <span id="main-text">Click a button below for a surprise!</span>
+                <div id="spinner"></div>
+                <span id="punchline"></span>
+            </div>
+        </main>
+
+        <div class="controls">
+            <button class="action-btn" id="compliment-btn">New Compliment</button>
+            <button class="action-btn" id="joke-btn">New Joke</button>
+        </div>
+    </div>
 
     <script>
-      const compliments = [
-        "You're the human equivalent of finding an extra fry in the bag. 🍟",
-        "If you were a vegetable, you'd be a cute-cumber! 🥒",
-        "You have the kind of energy that makes plants grow faster. 🌿",
-        "You plug the USB in right on the very first try. 🔌",
-        "You are cooler than the other side of the pillow. 🧊",
-        "You're more fun than a giant sheet of bubble wrap! 🫧",
-        "I would share my very last slice of pizza with you. 🍕",
-        "You have 'main character' energy. 🎬",
-        "You're the human version of a golden retriever. 🐕",
-        "If you were a triangle, you'd be acute one! 📐",
-        "You could definitely survive a zombie apocalypse. 🧟‍♂️",
-        "Your vibe is like a perfectly warmed blanket fresh from the dryer. 🛌",
-        "You make ordinary moments totally extraordinary. ✨",
-        "You're smarter than a really smart dolphin. 🐬",
-        "Your Wi-Fi signal is probably incredibly strong. 📶",
-        "You have impeccable taste in everything. 🤌",
-        "Your laugh is highly contagious. 😆",
-        "You're the reason someone smiled today. 😊",
-        "You look like you know exactly where north is at all times. 🧭",
-        "If you were a color, you'd be the brightest one in the box. 🖍️",
-        "You give the best high-fives in the universe. 🙌",
-        "I bet you've never accidentally hit 'Reply All' on an embarrassing email. 📧",
-        "You're like a software update that actually fixes things! 💻",
-        "You are a limited edition, one-of-a-kind masterpiece. 🎨",
-        "Even your bad hair days look like a magazine cover. 📸",
-        "Your playlists must be absolute fire. 🔥",
-        "You are an incredibly awesome friend. 🤝",
-        "You could win a staring contest with an owl. 🦉",
-        "You always know exactly what to say. 💬",
-        "You're the perfectly toasted marshmallow of my s'more. 🏕️",
-        "Your energy lights up the entire room. 💡",
-        "You make a rainy day feel like a cozy adventure. ☔",
-        "You're a total rockstar, minus the trashed hotel rooms. 🎸",
-        "Your perspective is incredibly refreshing. 🍃",
-        "You're as sweet as a bakery on a Sunday morning. 🍩",
-        "You have the heart of a lion and the soul of a puppy. 🦁",
-        "If you were a fruit, you'd be a fine-apple. 🍍",
-        "I would totally trust you to hold my drink at a party. 🥤",
-        "You always pass the vibe check. ✅",
-        "You're a human cup of hot chocolate with mini marshmallows. ☕",
-        "You outshine the disco ball. 🪩",
-        "You're the twist at the end of a great movie. 🍿",
-        "Your kindness is a balm to everyone you meet. 🩹",
-        "You are a literal genius. 🧠",
-        "You bring out the absolute best in other people. ⭐",
-        "You're like an oasis in the desert. 🌴",
-        "You could outsmart a fox. 🦊",
-        "Your creative potential seems totally limitless. 🚀",
-        "You're the 'skip ad' button to a bad day. ⏭️",
-        "You make the world a much better place. 🌍",
-        "You are doing great things today! 🏆",
-        "You should be so proud of yourself. 👏",
-        "You are enough just exactly as you are. 💖",
-        "You're far stronger than you even realize. 💪",
-        "Your smile could instantly disarm a supervillain. 🦹",
-        "You have a 100% battery charge kind of aura. 🔋",
-        "You're the cherry on top of an already amazing sundae. 🍒",
-        "If you were a font, you'd be something classy but fun. 🔤",
-        "You're a glowing example of awesomeness. 🌟",
-        "You make difficult things look completely effortless. 🎩",
-        "You're more magical than a unicorn eating a taco. 🦄🌮",
-        "Your soul is absolutely beautiful. 🕊️",
-        "You're the human equivalent of an extra chicken nugget. 🍗",
-        "You are braver than a knight in shining armor. ⚔️",
-        "You're a walking, talking ray of sunshine. ☀️",
-        "You have the best ideas. 💡",
-        "Your positive attitude is truly inspiring. 🌈",
-        "You're the peanut butter to my jelly. 🥜",
-        "You could make a sloth want to run a marathon. 🦥",
-        "You are a force of nature. 🌪️",
-        "You're the plot twist I never saw coming (in a good way). 📖",
-        "You're like a perfectly timed joke. 😂",
-        "You have a heart of solid gold. 🥇",
-        "You could probably negotiate peace with aliens. 👽",
-        "You're a masterpiece and a work in progress all at once. 🖌️",
-        "You make everyone feel so welcomed and seen. 🚪",
-        "You're like an unexpected holiday on a Monday. 🎉",
-        "You are beautifully complex. 🧩",
-        "You're the secret ingredient in the recipe of life. 🧂",
-        "Your joy is completely infectious. 😄",
-        "You are made of stardust and magic. ✨",
-        "You always leave things better than you found them. 🌱",
-        "You're an absolute legend. 👑",
-        "You have a remarkable ability to understand people. 👂",
-        "You're the high score on my favorite arcade game. 👾",
-        "You make everything you wear look incredibly fashionable. 👗",
-        "You are a breath of fresh air. 🌬️",
-        "You're the best thing since sliced bread. 🍞",
-        "You could teach a masterclass in being awesome. 🎓",
-        "You have a highly comforting presence. 🕯️",
-        "You're the grand prize. 🏆",
-        "You handle challenges with incredible grace. 🦢",
-        "You're rarer than a double rainbow. 🌈🌈",
-        "You are a treasure. 💎",
-        "Your future is looking exceedingly bright. 🔭",
-        "You're a brilliant puzzle piece that fits perfectly. 🧩",
-        "You always know how to find the silver lining. ⛅",
-        "You are spectacularly unique. 🦚",
-        "You're the superhero this world definitely needs. 🦸",
-        "I'm so glad you exist! 🥰",
-      ];
+        // --- 100 COMPLIMENTS with context emojis ---
+        const compliments = [
+            { t: "You're the human equivalent of finding an extra fry in the bag.", e: "🍟" },
+            { t: "If you were a vegetable, you'd be a cute-cumber!", e: "🥒" },
+            { t: "You have the kind of energy that makes plants grow faster.", e: "🌿" },
+            { t: "You plug the USB in right on the very first try.", e: "🔌" },
+            { t: "You are cooler than the other side of the pillow.", e: "🧊" },
+            { t: "You're more fun than a giant sheet of bubble wrap!", e: "🫧" },
+            { t: "I would share my very last slice of pizza with you.", e: "🍕" },
+            { t: "You have 'main character' energy.", e: "🎬" },
+            { t: "You're the human version of a golden retriever.", e: "🐕" },
+            { t: "If you were a triangle, you'd be acute one!", e: "📐" },
+            { t: "You could definitely survive a zombie apocalypse.", e: "🧟‍♂️" },
+            { t: "Your vibe is like a perfectly warmed blanket fresh from the dryer.", e: "🛌" },
+            { t: "You make ordinary moments totally extraordinary.", e: "✨" },
+            { t: "You're smarter than a really smart dolphin.", e: "🐬" },
+            { t: "Your Wi-Fi signal is probably incredibly strong.", e: "📶" },
+            { t: "You have impeccable taste in everything.", e: "🤌" },
+            { t: "Your laugh is highly contagious.", e: "😆" },
+            { t: "You're the reason someone smiled today.", e: "😊" },
+            { t: "You look like you know exactly where north is at all times.", e: "🧭" },
+            { t: "If you were a color, you'd be the brightest one in the box.", e: "🖍️" },
+            { t: "You give the best high-fives in the universe.", e: "🙌" },
+            { t: "I bet you've never accidentally hit 'Reply All' on an email.", e: "📧" },
+            { t: "You're like a software update that actually fixes things!", e: "💻" },
+            { t: "You are a limited edition, one-of-a-kind masterpiece.", e: "🎨" },
+            { t: "Even your bad hair days look like a magazine cover.", e: "📸" },
+            { t: "Your playlists must be absolute fire.", e: "🔥" },
+            { t: "You are an incredibly awesome friend.", e: "🤝" },
+            { t: "You could win a staring contest with an owl.", e: "🦉" },
+            { t: "You always know exactly what to say.", e: "💬" },
+            { t: "You're the perfectly toasted marshmallow of my s'more.", e: "🏕️" },
+            { t: "Your energy lights up the entire room.", e: "💡" },
+            { t: "You make a rainy day feel like a cozy adventure.", e: "☔" },
+            { t: "You're a total rockstar, minus the trashed hotel rooms.", e: "🎸" },
+            { t: "Your perspective is incredibly refreshing.", e: "🍃" },
+            { t: "You're as sweet as a bakery on a Sunday morning.", e: "Donut" },
+            { t: "You have the heart of a lion and the soul of a puppy.", e: "🦁" },
+            { t: "If you were a fruit, you'd be a fine-apple.", e: "🍍" },
+            { t: "I would totally trust you to hold my drink.", e: "🥤" },
+            { t: "You always pass the vibe check.", e: "✅" },
+            { t: "You're a human cup of hot chocolate with mini marshmallows.", e: "☕" },
+            { t: "You outshine the disco ball.", e: "🪩" },
+            { t: "You're the twist at the end of a great movie.", e: "🍿" },
+            { t: "Your kindness is a balm to everyone you meet.", e: "🩹" },
+            { t: "You are a literal genius.", e: "🧠" },
+            { t: "You bring out the absolute best in other people.", e: "⭐" },
+            { t: "You're like an oasis in the desert.", e: "🌴" },
+            { t: "You could outsmart a fox.", e: "🦊" },
+            { t: "Your creative potential seems totally limitless.", e: "🚀" },
+            { t: "You're the 'skip ad' button to a bad day.", e: "⏭️" },
+            { t: "You make the world a much better place.", e: "🌍" },
+            { t: "You are doing great things today!", e: "🏆" },
+            { t: "You should be so proud of yourself.", e: "👏" },
+            { t: "You are enough just exactly as you are.", e: "💖" },
+            { t: "You're far stronger than you even realize.", e: "💪" },
+            { t: "Your smile could instantly disarm a supervillain.", e: "🦹" },
+            { t: "You have a 100% battery charge kind of aura.", e: "🔋" },
+            { t: "You're the cherry on top of an already amazing sundae.", e: "🍒" },
+            { t: "If you were a font, you'd be something classy but fun.", e: "🔤" },
+            { t: "You're a glowing example of awesomeness.", e: "🌟" },
+            { t: "You make difficult things look completely effortless.", e: "🎩" },
+            { t: "You're more magical than a unicorn eating a taco.", e: "🦄" },
+            { t: "Your soul is absolutely beautiful.", e: "🕊️" },
+            { t: "You're the human equivalent of an extra chicken nugget.", e: "🍗" },
+            { t: "You are braver than a knight in shining armor.", e: "⚔️" },
+            { t: "You're a walking, talking ray of sunshine.", e: "☀️" },
+            { t: "You have the best ideas.", e: "💡" },
+            { t: "Your positive attitude is truly inspiring.", e: "🌈" },
+            { t: "You're the peanut butter to my jelly.", e: "🥜" },
+            { t: "You could make a sloth want to run a marathon.", e: "🦥" },
+            { t: "You are a force of nature.", e: "🌪️" },
+            { t: "You're the plot twist I never saw coming.", e: "📖" },
+            { t: "You're like a perfectly timed joke.", e: "😂" },
+            { t: "You have a heart of solid gold.", e: "🥇" },
+            { t: "You could probably negotiate peace with aliens.", e: "👽" },
+            { t: "You're a masterpiece and a work in progress.", e: "🖌️" },
+            { t: "You make everyone feel so welcomed and seen.", e: "🚪" },
+            { t: "You're like an unexpected holiday on a Monday.", e: "🎉" },
+            { t: "You are beautifully complex.", e: "🧩" },
+            { t: "You're the secret ingredient in the recipe of life.", e: "🧂" },
+            { t: "Your joy is completely infectious.", e: "😄" },
+            { t: "You are made of stardust and magic.", e: "✨" },
+            { t: "You always leave things better than you found them.", e: "🌱" },
+            { t: "You're an absolute legend.", e: "👑" },
+            { t: "You have a remarkable ability to understand people.", e: "👂" },
+            { t: "You're the high score on my favorite arcade game.", e: "👾" },
+            { t: "You make everything you wear look fashionable.", e: "👗" },
+            { t: "You are a breath of fresh air.", e: "🌬️" },
+            { t: "You're the best thing since sliced bread.", e: "🍞" },
+            { t: "You could teach a masterclass in being awesome.", e: "🎓" },
+            { t: "You have a highly comforting presence.", e: "🕯️" },
+            { t: "You're the grand prize.", e: "🏆" },
+            { t: "You handle challenges with incredible grace.", e: "🦢" },
+            { t: "You're rarer than a double rainbow.", e: "🌈" },
+            { t: "You are a treasure.", e: "💎" },
+            { t: "Your future is looking exceedingly bright.", e: "🔭" },
+            { t: "You're a brilliant puzzle piece that fits perfectly.", e: "🧩" },
+            { t: "You always know how to find the silver lining.", e: "⛅" },
+            { t: "You are spectacularly unique.", e: "🦚" },
+            { t: "You're the superhero this world definitely needs.", e: "🦸" },
+            { t: "I'm so glad you exist!", e: "🥰" }
+        ];
 
-      const complimentDisplay = document.getElementById("compliment-display");
-      const generateBtn = document.getElementById("generate-btn");
-      const mainContainer = document.getElementById("main-container");
+        // --- 50 JOKES with context emojis ---
+        const jokes = [
+            { s: "Why don't scientists trust atoms?", p: "Because they make up everything!", e: "⚛️" },
+            { s: "What do you call a fake noodle?", p: "An Impasta!", e: "🍝" },
+            { s: "Why did the scarecrow win an award?", p: "Because he was outstanding in his field!", e: "🌾" },
+            { s: "What time did the man go to the dentist?", p: "Tooth hurt-y!", e: "🦷" },
+            { s: "Why did the melon jump into the lake?", p: "It wanted to be a water-melon!", e: "🍉" },
+            { s: "Why can't you give Elsa a balloon?", p: "Because she will let it go!", e: "🎈" },
+            { s: "What do you call a bear with no teeth?", p: "A gummy bear!", e: "🧸" },
+            { s: "Why did the math book look sad?", p: "Because it had too many problems.", e: "📚" },
+            { s: "What do you call cheese that isn't yours?", p: "Nacho cheese!", e: "🧀" },
+            { s: "Why did the golfer bring two pairs of pants?", p: "In case he got a hole in one!", e: "⛳" },
+            { s: "What do you call a sleeping dinosaur?", p: "A dino-snore!", e: "🦖" },
+            { s: "How do you make a tissue dance?", p: "You put a little boogie in it!", e: "🤧" },
+            { s: "Why was the belt arrested?", p: "For holding up a pair of pants!", e: "👖" },
+            { s: "What do you call a snowman with a six pack?", p: "An abdominal snowman!", e: "⛄" },
+            { s: "Why did the cookie go to the doctor?", p: "Because he was feeling crumb-y.", e: "🍪" },
+            { s: "What do you call a pig that knows karate?", p: "A pork chop!", e: "🥋" },
+            { s: "Why did the tomato blush?", p: "Because it saw the salad dressing!", e: "🍅" },
+            { s: "What do you call a fish with no eyes?", p: "A fsh.", e: "🐟" },
+            { s: "Why did the bicycle fall over?", p: "Because it was two-tired!", e: "🚲" },
+            { s: "What starts with T, ends with T, and has T in it?", p: "A teapot.", e: "🫖" },
+            { s: "What do you call an alligator in a vest?", p: "An investigator!", e: "🐊" },
+            { s: "What do you call a pile of cats?", p: "A meow-ntain.", e: "🐱" },
+            { s: "Why are ghosts such bad liars?", p: "Because they are easy to see through!", e: "👻" },
+            { s: "What kind of room has no doors or windows?", p: "A mushroom!", e: "🍄" },
+            { s: "Why did the banana go to the doctor?", p: "It wasn't peeling well!", e: "🍌" },
+            { s: "What do you call a belt made of watches?", p: "A waist of time!", e: "⌚" },
+            { s: "What do you call a dog that can do magic?", p: "A Labracadabrador.", e: "🪄" },
+            { s: "Why did the boy bring a ladder to school?", p: "He wanted to go to high school!", e: "🪜" },
+            { s: "How do you count cows?", p: "With a cow-culator!", e: "🐄" },
+            { s: "What do you call a cold dog?", p: "A chili dog!", e: "🌭" },
+            { s: "Why did the tree go to the dentist?", p: "It needed a root canal!", e: "🌳" },
+            { s: "What do you call a pencil with two erasers?", p: "Pointless.", e: "✏️" },
+            { s: "How does a penguin build its house?", p: "Igloos it together!", e: "🐧" },
+            { s: "Why did the man put his money in the freezer?", p: "He wanted cold hard cash!", e: "❄️" },
+            { s: "What do you call a dinosaur that is a noisy sleeper?", p: "A Tyrannosnore-us!", e: "🛌" },
+            { s: "What do you call a story about a broken pencil?", p: "Pointless.", e: "📓" },
+            { s: "Why did the strawberry cry?", p: "His parents were in a jam!", e: "🍓" },
+            { s: "What do you call a bee that can't make up its mind?", p: "A maybee!", e: "🐝" },
+            { s: "Why did the student eat his homework?", p: "The teacher said it was a piece of cake!", e: "🍰" },
+            { s: "What did the zero say to the eight?", p: "Nice belt!", e: "♾️" },
+            { s: "What do you call a group of disorganized cats?", p: "A cat-astrophe!", e: "🐾" },
+            { s: "Why did the computer cross the road?", p: "To get a byte to eat!", e: "🖥️" },
+            { s: "What is a cat's favorite color?", p: "Purr-ple!", e: "🧶" },
+            { s: "What do you call a skeleton who won't work?", p: "Lazy bones!", e: "💀" },
+            { s: "Why can't a nose be 12 inches long?", p: "Because then it would be a foot!", e: "👃" },
+            { s: "Why did the stadium get hot after the game?", p: "All the fans left!", e: "📣" },
+            { s: "What's blue and smells like red paint?", p: "Blue paint.", e: "🎨" },
+            { s: "Why did the orange stop?", p: "It ran out of juice!", e: "🍊" },
+            { s: "What do you call an elephant that doesn't matter?", p: "An irrelephant!", e: "🐘" },
+            { s: "What do you call a fly with no wings?", p: "A walk.", e: "🪰" }
+        ];
 
-      let lastIndex = -1;
+        const colors = ["#FFADAD", "#FFD6A5", "#FDFFB6", "#CAFFBF", "#9BF6FF", "#A0C4FF", "#BDB2FF", "#FFC6FF", "#E7C6FF", "#C1FFD7"];
 
-      function getNewCompliment() {
-        let randomIndex;
+        const mainText = document.getElementById('main-text');
+        const punchline = document.getElementById('punchline');
+        const display = document.getElementById('content-display');
+        const card = document.getElementById('main-container');
+        const compBtn = document.getElementById('compliment-btn');
+        const jokeBtn = document.getElementById('joke-btn');
+        const iconTR = document.getElementById('icon-tr');
+        const iconBL = document.getElementById('icon-bl');
 
-        do {
-          randomIndex = Math.floor(Math.random() * compliments.length);
-        } while (randomIndex === lastIndex && compliments.length > 1);
+        let interactionTimeout;
 
-        lastIndex = randomIndex;
+        function updateCardVisuals(emoji) {
+            // Restart Glass Shine
+            card.classList.remove('animate-shine');
+            void card.offsetWidth;
+            card.classList.add('animate-shine');
 
-        // 1. Start the text hide animation
-        complimentDisplay.classList.add("hide");
+            // Pick two different random colors for circles
+            const color1 = colors[Math.floor(Math.random() * colors.length)];
+            const color2 = colors[Math.floor(Math.random() * colors.length)];
 
-        // 2. Clear any existing shine animation by removing the class
-        mainContainer.classList.remove("animate-shine");
+            iconTR.textContent = emoji || "✨";
+            iconTR.style.backgroundColor = color1;
+            iconBL.textContent = emoji || "✨";
+            iconBL.style.backgroundColor = color2;
+        }
 
-        // Trigger a reflow to allow the browser to recognize the class was removed
-        // before we add it back to restart the animation
-        void mainContainer.offsetWidth;
+        function displayNewContent(type) {
+            clearTimeout(interactionTimeout);
+            display.classList.add('hide');
+            punchline.classList.remove('visible');
+            display.classList.remove('show-spinner');
 
-        // 3. Set a small timeout to change the text and trigger the shine
-        setTimeout(() => {
-          // Change text
-          complimentDisplay.textContent = compliments[randomIndex];
+            setTimeout(() => {
+                if (type === 'compliment') {
+                    const item = compliments[Math.floor(Math.random() * compliments.length)];
+                    updateCardVisuals(item.e);
+                    mainText.textContent = item.t;
+                    punchline.textContent = "";
+                } else {
+                    const item = jokes[Math.floor(Math.random() * jokes.length)];
+                    updateCardVisuals(item.e);
+                    mainText.textContent = item.s;
+                    punchline.textContent = item.p;
+                    
+                    display.classList.add('show-spinner');
+                    
+                    interactionTimeout = setTimeout(() => {
+                        display.classList.remove('show-spinner');
+                        punchline.classList.add('visible');
+                    }, 1800); 
+                }
 
-          // Show text again with the "pop"
-          complimentDisplay.classList.remove("hide");
+                display.classList.remove('hide');
+            }, 400);
+        }
 
-          // Trigger the glass shine animation
-          mainContainer.classList.add("animate-shine");
-        }, 350);
-      }
+        compBtn.addEventListener('click', () => displayNewContent('compliment'));
+        jokeBtn.addEventListener('click', () => displayNewContent('joke'));
 
-      generateBtn.addEventListener("click", getNewCompliment);
     </script>
-  </body>
+</body>
 </html>
